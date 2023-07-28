@@ -91,32 +91,32 @@ GltfMesh glUploadMesh(cgltf_node *node) {
     mesh_.material.albedo.y = primitive->material->pbr_metallic_roughness.base_color_factor[1];
     mesh_.material.albedo.z = primitive->material->pbr_metallic_roughness.base_color_factor[2];
 
-    // cgltf_texture *texture = primitive->material->pbr_metallic_roughness.base_color_texture.texture;
-    // if (texture) {
-    //   printf("%s\n", texture->name);
-    //   int x, y, channels;
-    //   stbi_uc *texture_data = stbi_load_from_memory((stbi_uc*)((u64)texture->image->buffer_view->buffer->data + texture->image->buffer_view->offset), texture->image->buffer_view->size, &x, &y, &channels, 4);
+    cgltf_texture *texture = primitive->material->pbr_metallic_roughness.base_color_texture.texture;
+    if (texture) {
+      printf("%s\n", texture->name);
+      int x, y, channels;
+      stbi_uc *texture_data = stbi_load_from_memory((stbi_uc*)((u64)texture->image->buffer_view->buffer->data + texture->image->buffer_view->offset), texture->image->buffer_view->size, &x, &y, &channels, 4);
 
-    //   u32 tex;
-    //   glGenTextures(1, &tex);
+      u32 tex;
+      glGenTextures(1, &tex);
 
-    //   mesh_.tex = tex;
+      mesh_.tex = tex;
 
-    //   glBindTexture(GL_TEXTURE_2D, tex);
+      glBindTexture(GL_TEXTURE_2D, tex);
 
-    //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, 16.0f);
-    //   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    //   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    //   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    //   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, 16.0f);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    //   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data);
-    //   glGenerateMipmap(GL_TEXTURE_2D);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data);
+      glGenerateMipmap(GL_TEXTURE_2D);
 
-    //   stbi_image_free(texture_data);
-    // } else {
-    //   mesh_.tex = -1;
-    // }
+      stbi_image_free(texture_data);
+    } else {
+      mesh_.tex = -1;
+    }
 
     u32 ebo;
     glGenBuffers(1, &ebo);
@@ -178,7 +178,7 @@ GltfMesh glUploadMesh(cgltf_node *node) {
   return mesh_;
 }
 
-Model *glUploadModel(cgltf_data *data) {
+Model *gltf_upload_model(cgltf_data *data) {
   struct Model *model = (Model*)malloc(sizeof(Model));
   model->count = 0;
   for (int i = 0; i < data->nodes_count; i++) {
@@ -203,7 +203,7 @@ void render_model(Model *model) {
     GltfMesh *mesh = &model->meshes[i];
     glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model->transform * mesh->transform));
     glUniform3fv(4, 1, glm::value_ptr(mesh->material.albedo));
-    glUniform1i(4, mesh->tex != -1);
+    glUniform1i(5, mesh->tex != -1);
     if (mesh->tex != -1) {
       glBindTexture(GL_TEXTURE_2D, mesh->tex);
     }
@@ -221,10 +221,12 @@ void render_model_jort(Model *model, int index) {
     } else {
       glUniform3fv(4, 1, glm::value_ptr(mesh->material.albedo * glm::vec3(1.4f)));
     }
-    glUniform1i(4, mesh->tex != -1);
+    glUniform1i(5, mesh->tex != -1);
+
     if (mesh->tex != -1) {
       glBindTexture(GL_TEXTURE_2D, mesh->tex);
     }
+
     glBindVertexArray(mesh->vao);
     glDrawElements(GL_TRIANGLES, mesh->elements, GL_UNSIGNED_SHORT, 0);
   }

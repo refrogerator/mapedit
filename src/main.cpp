@@ -30,6 +30,11 @@
 #include "physics/aabb.cpp"
 #include "renderer/gltf.cpp"
 
+
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_opengl3.h"
+
 enum ValueType {
 };
 
@@ -50,6 +55,8 @@ struct Selection {
 };
 
 struct Object {
+    char *classname;
+    Model *model;
 };
 
 struct ObjectList {
@@ -164,7 +171,7 @@ enum EditMode {
 	Edge,
 	Face,
 	MeshM,
-	Object,
+	ObjectM,
 };
 
 enum EditTool {
@@ -241,29 +248,39 @@ int main () { // impure
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	SDL_GL_CreateContext(window);
+	SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 	gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
 
 
 	glViewport(0, 0, 1920, 1080);
 
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+    ImGui_ImplOpenGL3_Init();
+
 	cgltf_options options{};
 	cgltf_data *data = NULL;
-	cgltf_result result = cgltf_parse_file(&options, "tgizmo.glb", &data);
+	cgltf_result result = cgltf_parse_file(&options, "res/models/tgizmo.glb", &data);
 	cgltf_load_buffers(&options, data, "./");
 
 	Gizmo gizmo;
 	gizmo.pos = glm::vec3(0.0f);
-	gizmo.model = glUploadModel(data);
+	gizmo.model = gltf_upload_model(data);
 	gizmo.visible = 1;
 
 	cgltf_free(data);
 
 
-	result = cgltf_parse_file(&options, "fortnite.glb", &data);
+	result = cgltf_parse_file(&options, "ak47.glb", &data);
 	cgltf_load_buffers(&options, data, "./");
 
-	// Model *box = glUploadModel(data);
+	Model *box = gltf_upload_model(data);
 
 	cgltf_free(data);
 
@@ -272,8 +289,12 @@ int main () { // impure
 	u32 frag_shader = loadShader("fortnite.frag", GL_FRAGMENT_SHADER);
 	u32 grid_fshader = loadShader("grid.frag", GL_FRAGMENT_SHADER);
 
+    u32 textv = loadShader("text.vert", GL_VERTEX_SHADER);
+    u32 textf = loadShader("text.frag", GL_FRAGMENT_SHADER);
+
 	u32 shader = createProgram(vert_shader, frag_shader, false);
 	u32 grid_shader = createProgram(vert_shader, grid_fshader, true);
+    u32 text_shader = createProgram(textv, textf, true);
 
 	int quit = 0;
 	SDL_Event event;
@@ -294,7 +315,7 @@ int main () { // impure
 	int rel_mode = 0;
 
 
-	// SDL_GL_SetSwapInterval(0);
+	//SDL_GL_SetSwapInterval(0);
 
 	u32 frametime_total = 0;
 	float frametime = 0.0;
@@ -326,6 +347,18 @@ int main () { // impure
 	stbi_image_free(texture_data);
 
     ObjectList objects = new_object_list();
+
+    Object ak;
+    ak.model = box;
+    ak.classname = "ak47";
+
+    objects = add_object(objects, &ak);
+
+    Object ak2;
+    ak2.model = box;
+    ak2.classname = "ak473";
+
+    objects = add_object(objects, &ak2);
 
 	BrushList brushes = new_brushlist();
 
@@ -373,7 +406,7 @@ int main () { // impure
 	u32 moving = 0;
 	u32 vertical = 0;
 
-	EditMode edit_mode = Object;
+	EditMode edit_mode = ObjectM;
 
 	u32 wireframe = 0;
 
@@ -392,6 +425,8 @@ int main () { // impure
 
 	u32 extruded = 0;
 
+    char *selected_object_class = "fortnite balls";
+
 	while (!quit) {
 		u32 cur_time = SDL_GetTicks();
 		// printf("%u - %u, %u\n", cur_time, time_old, delta_8);
@@ -406,7 +441,7 @@ int main () { // impure
 		u64 delta_uint = SDL_GetPerformanceCounter() - last_delta_uint;
 		last_delta_uint = SDL_GetPerformanceCounter();
 		double delta_ = (double)delta_uint	/ (double)SDL_GetPerformanceFrequency();
-		// printf("%lf, %lf, %lu\n", fps, 1.0 / delta_, SDL_GetPerformanceFrequency());
+		//printf("%lf, %lf, %lu\n", fps, 1.0 / delta_, SDL_GetPerformanceFrequency());
 		float delta = (float)(delta_int) / 1000.0f;
 		time_old = cur_time;
 
@@ -440,6 +475,7 @@ int main () { // impure
 
 		// handle SDL events
 		while (SDL_PollEvent(&event)) {
+            ImGui_ImplSDL2_ProcessEvent(&event);
 
 			switch (event.type) {
 				case SDL_QUIT:
@@ -561,7 +597,7 @@ int main () { // impure
 										}
 										break;
 										case Face:
-										case Object: {
+										case ObjectM: {
 											if (~SDL_GetModState() & KMOD_LSHIFT && !is_present) {
 												selected_brushes.clear();
 												init_jorts.clear();
@@ -593,7 +629,7 @@ int main () { // impure
 												gizmo.pos = new_brush->origin;
 											}
 
-											if (edit_mode == Object) break;
+											if (edit_mode == ObjectM) break;
 
 											if (selected_brushes.size()) {
 												int selected_face = -1;
@@ -693,7 +729,7 @@ int main () { // impure
 							edit_mode = Vertex;
 							break;
 						case SDL_SCANCODE_5:
-							edit_mode = Object;
+							edit_mode = ObjectM;
 							break;
 						case SDL_SCANCODE_EQUALS:
 							wireframe = !wireframe;
@@ -737,6 +773,25 @@ int main () { // impure
 		}
 
 
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL2_NewFrame();
+        ImGui::NewFrame();
+
+        ImGui::Text(selected_object_class);
+
+        ImVec2 button_sz(100, 100);
+        ImGuiStyle& style = ImGui::GetStyle();
+        float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+        for (int i = 0; i < objects.len; i++) {
+            if (ImGui::Button(objects.data[i]->classname, button_sz)) {
+                selected_object_class = objects.data[i]->classname;
+            }
+            float last_button_x2 = ImGui::GetItemRectMax().x;
+            float next_button_x2 = last_button_x2 + style.ItemSpacing.x + button_sz.x; // Expected position if next button was on same line
+            if (i + 1 < objects.len && next_button_x2 < window_visible_x2)
+                ImGui::SameLine();
+        }
+
 		// float rots[3];
 		// printf("%f, %f, %f\n", rots_stored[0], rots_stored[1], rots_stored[2]);
 		// float gyro_sens = 1.0f;
@@ -771,7 +826,7 @@ int main () { // impure
 			}
 		}
 
-		glClearColor(0.3, 0.5, 1.0, 1.0);
+		glClearColor(0.0, 0.5, 1.0, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glm::mat4 model = glm::mat4(1.0f);
@@ -830,7 +885,7 @@ int main () { // impure
 			if (selected_brushes.size()) {
 				// printf("jort\n");
 				switch (edit_mode) {
-					case Object: {
+					case ObjectM: {
 						Brush *brusher = get_brush(brushes, selected_brushes[0].obj);
 						brusher->origin = object_new_pos(brusher->origin, move_dir, camera->origin, ray_world, grid);
 						gizmo.pos = brusher->origin;
@@ -898,6 +953,7 @@ int main () { // impure
 			glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 			glEnable(GL_CULL_FACE);
 		}
+        glBindTexture(GL_TEXTURE_2D, tex);
 		render_brushes(brushes, selected_brushes);
 
 		glUniform1ui(11, 0);
@@ -915,11 +971,18 @@ int main () { // impure
 				render_model(gizmo.model);
 			}
 		}
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		SDL_GL_SwapWindow(window);
 		frames++;
 	}
 
+
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
 	SDL_DestroyWindow(window);
 	SDL_Quit();
 }

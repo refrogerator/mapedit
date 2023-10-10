@@ -1,7 +1,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-int gltfGetCount(cgltf_type type) {
+int gltf_get_count(cgltf_type type) {
   switch (type) {
     case cgltf_type_vec3:
       return 3;
@@ -13,7 +13,7 @@ int gltfGetCount(cgltf_type type) {
   return 0;
 }
 
-int gltfTypeToGLType(cgltf_component_type type) {
+int gltf_type_to_gl_type(cgltf_component_type type) {
   switch (type) {
   	case cgltf_component_type_r_8:
       return GL_BYTE;
@@ -46,12 +46,25 @@ struct GltfMesh {
 };
 
 struct Model {
+  cgltf_data *data;
   GltfMesh *meshes;
   glm::mat4 transform;
   u32 count;
+  char *name;
 };
 
-GltfMesh glUploadMesh(cgltf_node *node) {
+int gltf_intersect_mesh(GltfMesh *mesh, glm::mat4 transform) {
+  return 0;
+}
+
+int gltf_intersect_model(Model *model) {
+    for (int i = 0; i < model->count; i++) {
+        gltf_intersect_mesh(&model->meshes[i], model->transform);
+    }
+  return 0;
+}
+
+GltfMesh gltf_upload_mesh(cgltf_node *node) {
   cgltf_mesh *mesh = node->mesh;
   printf("%s\n", node->name);
   printf("meshname: %s, primitives:%lu\n", mesh->name, mesh->primitives_count);
@@ -132,8 +145,8 @@ GltfMesh glUploadMesh(cgltf_node *node) {
     for (int a = 0; a < primitive->attributes_count; a++) {
       cgltf_attribute *attr = &mesh->primitives[i].attributes[a];
       cgltf_accessor *accessor = attr->data;
-      int count = gltfGetCount(accessor->type);
-      int type = gltfTypeToGLType(accessor->component_type);;
+      int count = gltf_get_count(accessor->type);
+      int type = gltf_type_to_gl_type(accessor->component_type);;
       int attribute = -1;
       switch (attr->type) {
         case cgltf_attribute_type_position:
@@ -180,6 +193,7 @@ GltfMesh glUploadMesh(cgltf_node *node) {
 
 Model *gltf_upload_model(cgltf_data *data) {
   struct Model *model = (Model*)malloc(sizeof(Model));
+  model->data = data;
   model->count = 0;
   for (int i = 0; i < data->nodes_count; i++) {
     if (data->nodes[i].mesh) {
@@ -190,7 +204,7 @@ Model *gltf_upload_model(cgltf_data *data) {
   int fart = 0;
   for (int i = 0; i < data->nodes_count; i++) {
     if (data->nodes[i].mesh) {
-      model->meshes[fart] = glUploadMesh(&data->nodes[i]);
+      model->meshes[fart] = gltf_upload_mesh(&data->nodes[i]);
       fart++;
     }
   }

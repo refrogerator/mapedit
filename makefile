@@ -1,5 +1,5 @@
 all:
-	clang++ -std=c++20 -o vulkan -lSDL2 -lEGL -lGL -lOpenGL -lm src/main.cpp -I3rdparty -ggdb -Werror=return-type -I3rdparty/imgui -I3rdparty/imgui/backends 3rdparty/imgui/backends/imgui_impl_sdl2.o 3rdparty/imgui/backends/imgui_impl_opengl3.o 3rdparty/imgui/imgui*.o
+	clang -lstdc++ -o vulkan -lSDL2 -lEGL -lGL -lOpenGL -lm src/main.cpp -I3rdparty -ggdb -Werror=return-type -I3rdparty/imgui -I3rdparty/imgui/backends 3rdparty/imgui/backends/imgui_impl_sdl2.o 3rdparty/imgui/backends/imgui_impl_opengl3.o 3rdparty/imgui/imgui*.o
 
 run: all
 	./vulkan

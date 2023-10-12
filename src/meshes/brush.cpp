@@ -122,16 +122,6 @@ BrushList new_brushlist() {
   return brushes;
 }
 
-BrushList add_brush(BrushList brushes, Brush *brush) {
-  if (brushes.len == brushes.max - 1) {
-    brushes.max += 10;
-    brushes.data = (Brush*)realloc(brushes.data, brushes.max * sizeof(Brush));
-  }
-  brushes.data[brushes.len] = *brush;
-  brushes.len += 1;
-  return brushes;
-}
-
 BrushList remove_brush(BrushList brushes, u32 index) {
   if (index == -1 || index > brushes.len) {
       return brushes;
@@ -187,22 +177,6 @@ void render_brushes(BrushList brushes, std::vector<Selection> selected) {
     render_brush(&brushes.data[i]);
   }
   glUniform1ui(5, 0);
-}
-
-u32 select_brush(BrushList brushes, glm::vec3 origin, glm::vec3 dir, float *_dist) {
-  float dist = INFINITY;
-  float best_dist = INFINITY;
-  u32 ret = -1;
-  for (int i = 0; i < brushes.len; i++) {
-    if (intersect_brush(&brushes.data[i], origin, dir, &dist)) {
-      if (dist >= 0.0 && dist < best_dist) {
-        best_dist = dist;
-        ret = i;
-      }
-    }
-  }
-  *_dist = best_dist;
-  return ret;
 }
 
 Brush *get_brush(BrushList brushes, u32 index) {

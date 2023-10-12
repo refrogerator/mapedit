@@ -26,9 +26,9 @@
 #include "common.h"
 #include "meshes/editing.cpp"
 #include "physics/aabb.cpp"
+#include "util.c"
 #include "renderer.h"
 #include "renderer/gltf.cpp"
-#include "util.c"
 
 #include <dirent.h>
 #include <sys/types.h>
@@ -62,18 +62,6 @@ struct Object {
   Model *model;
 };
 
-struct ObjectList {
-  u64 len;
-  u64 max;
-  Object **data;
-};
-
-struct MaterialList {
-  u64 len;
-  u64 max;
-  Material **data;
-};
-
 #include "meshes/brush.cpp"
 
 enum NodeType {
@@ -81,12 +69,34 @@ enum NodeType {
   node_type_brush,
 };
 
+
 struct SceneNode {
-  int obj;
+  enum NodeType type;
   union {
-    Object *object;
-    Brush *brush;
+    Object object;
+    Brush brush;
   };
+};
+
+#include "scene.cpp"
+
+void add_brush(std::vector<SceneNode> *scene, Brush brush) {
+  SceneNode chud = {};
+  chud.type = node_type_brush;
+  chud.brush = brush;
+  scene->push_back(chud);
+}
+
+struct Scene {
+  u64 len;
+  u64 max;
+  std::vector<SceneNode> data;
+};
+
+struct MaterialList {
+  u64 len;
+  u64 max;
+  Material **data;
 };
 
 struct Viewport {
@@ -337,11 +347,12 @@ int main() { // impure
 
   std::vector<Object> objects;
 
-  BrushList brushes = new_brushlist();
+  std::vector<SceneNode> scene;
+  // BrushList brushes = new_brushlist();
 
   std::vector<Material> materials;
   Brush *brush = new_brush();
-  brushes = add_brush(brushes, brush);
+  add_brush(&scene, *brush);
 
   float vertices[] = {
       50.0,  0.0, -50.0, 1.0, 0.0,   -50.0, 0.0, -50.0,
@@ -498,10 +509,15 @@ int main() { // impure
           {
 
             float dist;
-            u32 jorter =
-                select_brush(brushes, camera->origin, ray_world, &dist);
+            u32 jorter = select_node(scene, camera->origin, ray_world, &dist);
+            enum NodeType jorter_type;
+            if (jorter != -1) {
+              jorter_type = scene[jorter].type;
+            }
 
             if (selected_object_class != -1) {
+              SceneNode node = {};
+              node.type = node_type_object;
               Object object = {};
               object.model = &models[selected_object_class];
               if (jorter == -1) {
@@ -509,7 +525,8 @@ int main() { // impure
               } else {
                 object.pos = camera->origin + ray_world * dist;
               }
-              objects.push_back(object);
+              node.object = object;
+              scene.push_back(node);
               selected_object_class = -1;
               break;
             }
@@ -538,8 +555,13 @@ int main() { // impure
               int selected_vert = -1;
               int selected_brush = -1;
               float shortest_dist = INFINITY;
-              for (int i = 0; i < brushes.len; i++) {
-                Brush *brush = get_brush(brushes, i);
+              for (int i = 0; i < scene.size(); i++) {
+                // Brush *brush = get_brush(brushes, i);
+                if (scene[i].type != node_type_brush) {
+                  continue;
+                }
+
+                Brush *brush = &scene[i].brush;
                 intersect_brush(brush, camera->origin, ray_world, &dist);
                 for (int j = 0; j < brush->mesh->verts.size(); j++) {
                   glm::vec3 vert = brush->mesh->verts[j];
@@ -621,12 +643,19 @@ int main() { // impure
               }
 
               if (jorter != -1) {
-                init_jort = get_brush(brushes, selected_brushes[0].obj)->origin;
+                if (scene[selected_brushes[0].obj].type == node_type_brush) {
+                  init_jort = scene[selected_brushes[0].obj].brush.origin;
+                } else {
+                  init_jort = scene[selected_brushes[0].obj].object.pos;
+                }
               }
 
-              if (selected_brushes.size()) {
-                Brush *new_brush = get_brush(brushes, selected_brushes[0].obj);
-                gizmo.pos = new_brush->origin;
+              if (edit_mode == ObjectM && selected_brushes.size()) {
+                if (jorter_type == node_type_brush) {
+                  gizmo.pos = scene[selected_brushes[0].obj].brush.origin;
+                } else {
+                  gizmo.pos = scene[selected_brushes[0].obj].brush.origin;
+                }
               }
 
               if (edit_mode == ObjectM)
@@ -635,7 +664,7 @@ int main() { // impure
               if (selected_brushes.size()) {
                 int selected_face = -1;
                 for (int i = 0; i < selected_brushes.size(); i++) {
-                  Brush *jortware = get_brush(brushes, selected_brushes[i].obj);
+                  Brush *jortware = &scene[selected_brushes[i].obj].brush;
                   selected_face =
                       select_brush_face(jortware, camera->origin, ray_world);
                   if (selected_face != -1) {
@@ -655,7 +684,7 @@ int main() { // impure
                 if (!face_elem && !is_present) {
                   selected_brushes[idx].faces.push_back(selected_face);
                   Brush *new_brush =
-                      get_brush(brushes, selected_brushes[idx].obj);
+                          &scene[selected_brushes[idx].obj].brush;
                   gizmo.pos = get_face_center(new_brush->mesh,
                                               selected_brushes[idx].faces[0]) +
                               new_brush->origin;
@@ -723,7 +752,7 @@ int main() { // impure
           // }
           break;
         case SDL_SCANCODE_B:
-          brushes = add_brush(brushes, new_brush());
+          add_brush(&scene, *new_brush());
           break;
         case SDL_SCANCODE_G:
           break;
@@ -741,7 +770,8 @@ int main() { // impure
           break;
         case SDL_SCANCODE_C:
           for (Selection i : selected_brushes) {
-            brushes = remove_brush(brushes, i.obj);
+            // brushes = remove_brush(brushes, i.obj);
+            remove_node(&scene, i.obj);
           }
           selected_brushes.clear();
           break;
@@ -870,7 +900,7 @@ int main() { // impure
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 12 + 8, (void *)12);
     glEnableVertexAttribArray(2);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    // glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glUseProgram(shader);
     glEnable(GL_CULL_FACE);
@@ -901,7 +931,7 @@ int main() { // impure
         // printf("jort\n");
         switch (edit_mode) {
         case ObjectM: {
-          Brush *brusher = get_brush(brushes, selected_brushes[0].obj);
+          Brush *brusher = &scene[selected_brushes[0].obj].brush;
           brusher->origin = object_new_pos(brusher->origin, move_dir,
                                            camera->origin, ray_world, grid);
           gizmo.pos = brusher->origin;
@@ -911,7 +941,7 @@ int main() { // impure
             if (i == 0) {
               continue;
             }
-            brush = get_brush(brushes, selected_brushes[i].obj);
+            brush = &scene[selected_brushes[i].obj].brush;
             brush->origin += orig_mod;
           }
           init_jort = brusher->origin;
@@ -926,7 +956,7 @@ int main() { // impure
           // printf("%s\n", glm::to_string(offs).c_str());
           // }
           for (int i = 0; i < selected_brushes.size(); i++) {
-            Brush *cur_brush = get_brush(brushes, selected_brushes[i].obj);
+            Brush *cur_brush = &scene[selected_brushes[i].obj].brush;
             for (int j = 0; j < selected_brushes[i].faces.size(); j++) {
               u32 cur_face = selected_brushes[i].faces[j];
               if (offs != glm::vec3(0.0, 0.0, 0.0)) {
@@ -947,7 +977,7 @@ int main() { // impure
                                      ray_world, grid);
           offs = gizmo.pos - offs;
           for (int i = 0; i < selected_brushes.size(); i++) {
-            Brush *cur_brush = get_brush(brushes, selected_brushes[i].obj);
+            Brush *cur_brush = &scene[selected_brushes[i].obj].brush;
             for (int j = 0; j < selected_brushes[i].verts.size(); j++) {
               cur_brush->mesh->verts[selected_brushes[i].verts[j]] += offs;
             }
@@ -962,7 +992,7 @@ int main() { // impure
 
     glEnable(GL_BLEND);
     if (edit_mode == Vertex) {
-      render_brushes_points(brushes, selected_brushes);
+      // render_brushes_points(brushes, selected_brushes);
     }
     if (wireframe) {
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -972,15 +1002,53 @@ int main() { // impure
       glEnable(GL_CULL_FACE);
     }
     glBindTexture(GL_TEXTURE_2D, tex);
-    render_brushes(brushes, selected_brushes);
+    // render_brushes(brushes, selected_brushes);
 
-    glUniform1ui(11, 0);
     glUniform1ui(10, 0);
 
-    for (int i = 0; i < objects.size(); i++) {
-      objects[i].model->transform =
-          glm::translate(glm::mat4(1.0f), objects[i].pos);
-      render_model(objects[i].model);
+    for (int i = 0; i < scene.size(); i++) {
+      switch (scene[i].type) {
+        case node_type_brush: {
+          // printf("brush type\n");
+          glUniform1ui(5, 1);
+          glUniform1ui(11, 1);
+          glUniform1ui(10, 1);
+          // for (int i = 0; i < scene.size(); i++) {
+            int elem = 0;
+            for (int x = 0; x < selected_brushes.size(); x++) {
+              if (selected_brushes[x].obj == i) {
+                elem = 1 + x;
+                break;
+              }
+            }
+            if (elem) {
+              glm::vec3 albedo = glm::vec3(1.0, 0.0, 0.0);
+              glUniform3fv(4, 1, glm::value_ptr(albedo));
+
+        	  if (selected_brushes.size() && selected_brushes[elem - 1].faces.size()) {
+        		glUniform1ui(9, selected_brushes[elem - 1].faces.size());
+        		glUniform1uiv(12, selected_brushes[elem - 1].faces.size(), selected_brushes[elem - 1].faces.data());
+        	  }
+              //glUniform1ui(9, -1);
+            } else {
+              glm::vec3 albedo = glm::vec3(1.0);
+              glUniform3fv(4, 1, glm::value_ptr(albedo));
+              glUniform1ui(9, 0);
+            }
+
+            render_brush(&scene[i].brush);
+          // }
+          glUniform1ui(5, 0);
+          glUniform1ui(11, 0);
+          glUniform1ui(10, 0);
+          break;
+        }
+        case node_type_object:
+          scene[i].object.model->transform =
+              glm::translate(glm::mat4(1.0f), scene[i].object.pos);
+          render_model(scene[i].object.model);
+          break;
+      }
     }
 
     glUniform1ui(9, 0);

@@ -53,15 +53,23 @@ struct Model {
   char *name;
 };
 
-int gltf_intersect_mesh(GltfMesh *mesh, glm::mat4 transform) {
-  return 0;
+int gltf_intersect_mesh(GltfMesh *mesh, glm::mat4 transform, glm::vec3 origin, glm::vec3 direction, float *dist) {
+  AABB temp;
+  temp.max = transform * mesh->transform *
+             glm::vec4(mesh->aabb->max, 1.0);
+  temp.min = transform * mesh->transform *
+             glm::vec4(mesh->aabb->min, 1.0);
+  return intersect_ray_aabb(&temp, origin, direction, dist);
 }
 
-int gltf_intersect_model(Model *model) {
-    for (int i = 0; i < model->count; i++) {
-        gltf_intersect_mesh(&model->meshes[i], model->transform);
+int gltf_intersect_model(Model *model, glm::vec3 origin, glm::vec3 direction, float *dist) {
+  int joe = 0;
+  for (int i = 0; i < model->count; i++) {
+    if (gltf_intersect_mesh(&model->meshes[i], model->transform, origin, direction, dist)) {
+      joe = 1;
     }
-  return 0;
+  }
+  return joe;
 }
 
 GltfMesh gltf_upload_mesh(cgltf_node *node) {
@@ -188,6 +196,7 @@ GltfMesh gltf_upload_mesh(cgltf_node *node) {
       glEnableVertexAttribArray(attribute);
     }
   }
+  // mesh_.aabb = get_aabb(mesh_);
   return mesh_;
 }
 

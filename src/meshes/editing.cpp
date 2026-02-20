@@ -1,22 +1,4 @@
-#include <glm/gtx/intersect.hpp>
-#include <glm/gtx/string_cast.hpp>
-
-struct Face {
-  std::vector<u32> indices;
-  std::vector<glm::vec2> uvs;
-};
-
-struct Mesh {
-  std::vector<Face> faces;
-  std::vector<glm::vec3> verts;
-};
-
-struct UploadedMesh {
-  u32 vao;
-  u32 vbo;
-  u32 visible;
-  u32 num_verts;
-};
+#include "editing.hpp"
 
 glm::vec2 *get_default_uvs() {
   glm::vec2 uv0 = glm::vec2(0.0, 0.0);

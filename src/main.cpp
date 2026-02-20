@@ -1,3 +1,5 @@
+#include <cstdio>
+#define GLM_ENABLE_EXPERIMENTAL
 #include "glad.c"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
@@ -15,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unordered_map>
+#include "flecs.h"
 
 #define CGLTF_IMPLEMENTATION
 #include "cgltf.h"
@@ -22,13 +25,14 @@
 #include <algorithm>
 #include <vector>
 
-#include "camera.cpp"
+#include "camera.hpp"
 #include "common.h"
-#include "meshes/editing.cpp"
-#include "physics/aabb.cpp"
-#include "util.c"
-#include "renderer.h"
-#include "renderer/gltf.cpp"
+#include "meshes/editing.hpp"
+#include "physics/aabb.hpp"
+#include "renderer/gltf.hpp"
+#include "meshes/brush.hpp"
+#include "renderer/shader.hpp"
+#include "scene.hpp"
 
 #include <dirent.h>
 #include <sys/types.h>
@@ -48,37 +52,20 @@ struct CVar {
   char *description;
 };
 
-struct Selection {
-  u32 obj;
-  std::vector<u32> faces;
-  std::vector<u32> verts;
-};
-
-struct Object {
+struct Transform3D {
   glm::vec3 pos;
   glm::vec3 rotation;
   glm::vec3 scale;
-  char *classname;
-  Model *model;
+  glm::mat4 transform;
 };
 
-#include "meshes/brush.cpp"
-
-enum NodeType {
-  node_type_object,
-  node_type_brush,
+struct Rendered {
+  UploadedMesh *mesh;
+  Material material;
+  int meshes;
+  int visible;
 };
 
-
-struct SceneNode {
-  enum NodeType type;
-  union {
-    Object object;
-    Brush brush;
-  };
-};
-
-#include "scene.cpp"
 
 void add_brush(std::vector<SceneNode> *scene, Brush brush) {
   SceneNode chud = {};
@@ -132,6 +119,12 @@ enum EditTool {
   Select,
 };
 
+glm::vec3 new_pos_on_plane(glm::vec3 cur_pos, glm::vec3 plane, glm::vec3 origin, glm::vec3 dir) {
+  glm::vec3 res =
+      glm::length((cur_pos - origin) * plane) / glm::length(dir * plane) * dir;
+  return res;
+}
+
 glm::vec3 object_new_pos(glm::vec3 cur_pos, glm::vec3 plane, glm::vec3 origin,
                          glm::vec3 dir, u32 grid) {
   float griddiv = 256.0 / pow(2.0f, (float)grid);
@@ -141,7 +134,8 @@ glm::vec3 object_new_pos(glm::vec3 cur_pos, glm::vec3 plane, glm::vec3 origin,
       glm::length((cur_pos - origin) * plane) / glm::length(dir * plane) * dir;
   glm::vec3 jonathan = glm::vec3(round((origin + res) / griddiv) * griddiv) *
                        (glm::vec3(1.0f) - plane);
-  // printf("jort\n");
+  printf("jort\n");
+  printf("%s\n", glm::to_string(res).c_str());
   // printf("%s\n", glm::to_string(jonathan + cur_pos * plane).c_str());
   // printf("%s\n", glm::to_string(plane).c_str());
   // printf("%s\n", glm::to_string(cur_pos * plane).c_str());
@@ -182,14 +176,26 @@ glm::vec3 get_gizmo_plane(char *name) {
 
 struct Gizmo {
   glm::vec3 pos;
+  glm::vec3 hit_pos;
   Model *model;
   int visible;
+};
+
+struct Window {
 };
 
 int main() { // impure
              //
              //
              //
+
+  flecs::world world;
+
+  world.component<Transform3D>();
+  world.component<Rendered>();
+  world.component<Model>();
+  world.component<Brush>();
+  world.component<Object>();
 
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER |
            SDL_INIT_SENSOR);
@@ -199,13 +205,6 @@ int main() { // impure
       1080, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
   SDL_JoystickEventState(SDL_ENABLE);
-
-  SDL_GameController *gc = SDL_GameControllerOpen(0);
-  SDL_GameControllerSetSensorEnabled(gc, SDL_SENSOR_GYRO, SDL_TRUE);
-
-  if (SDL_GameControllerHasSensor(gc, SDL_SENSOR_GYRO)) {
-    printf("fortnite\n");
-  }
 
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
@@ -236,19 +235,20 @@ int main() { // impure
 
         cgltf_load_buffers(&options, data, "./models/");
 
-        Model *model = gltf_upload_model(data);
+        Model model = gltf_upload_model(data);
 
         puts(ep->d_name);
 
-        char *name = (char *)malloc(len - 3);
-        memcpy(name, ep->d_name, len - 4);
-        name[len - 4] = 0;
+        char *name = (char *)malloc(len+1);
+        memcpy(name, ep->d_name, len);
+        name[len] = 0;
 
-        model->name = name;
+        model.name = name;
 
-        models.push_back(*model);
+        // flecs::entity ent = world.entity(name).set(model);
+        models.push_back(model);
 
-        cgltf_free(data);
+        // cgltf_free(data);
       }
     }
     closedir(dp);
@@ -274,12 +274,13 @@ int main() { // impure
   cgltf_options options{};
   cgltf_data *data = NULL;
   cgltf_result result =
-      cgltf_parse_file(&options, "res/models/tgizmo.glb", &data);
+  cgltf_parse_file(&options, "res/models/tgizmo.glb", &data);
   cgltf_load_buffers(&options, data, "./");
 
   Gizmo gizmo;
   gizmo.pos = glm::vec3(0.0f);
-  gizmo.model = gltf_upload_model(data);
+  Model model = gltf_upload_model(data);
+  gizmo.model = &model;
   gizmo.visible = 1;
 
   cgltf_free(data);
@@ -352,6 +353,7 @@ int main() { // impure
 
   std::vector<Material> materials;
   Brush *brush = new_brush();
+  // flecs::entity default_brush = world.entity().set(*brush);
   add_brush(&scene, *brush);
 
   float vertices[] = {
@@ -395,7 +397,7 @@ int main() { // impure
 
   EditMode edit_mode = ObjectM;
 
-  u32 wireframe = 0;
+  u32 wireframe = 1;
 
   glm::vec3 init_jort;
   std::vector<glm::vec3> init_jorts;
@@ -543,6 +545,12 @@ int main() { // impure
                            glm::vec4(meshe->aabb->min, 1.0);
                 if (intersect_ray_aabb(&temp, camera->origin, ray_world,
                                        &diste)) {
+                  // Brush *b = new_brush();
+                  // b->origin = gizmo.hit_pos;
+                  // add_brush(&scene, *b);
+                  // // std::cout << gizmo.hit_pos << " " << gizmo.pos;
+                  // printf("%s\n", glm::to_string(gizmo.hit_pos).c_str());
+                  // printf("%s\n", glm::to_string(gizmo.pos).c_str());
                   is_present = 1;
                 }
               }
@@ -642,13 +650,13 @@ int main() { // impure
                 }
               }
 
-              if (jorter != -1) {
-                if (scene[selected_brushes[0].obj].type == node_type_brush) {
-                  init_jort = scene[selected_brushes[0].obj].brush.origin;
-                } else {
-                  init_jort = scene[selected_brushes[0].obj].object.pos;
-                }
-              }
+              // if (jorter != -1) {
+              //   if (scene[selected_brushes[0].obj].type == node_type_brush) {
+              //     init_jort = scene[selected_brushes[0].obj].brush.origin;
+              //   } else {
+              //     init_jort = scene[selected_brushes[0].obj].object.pos;
+              //   }
+              // }
 
               if (edit_mode == ObjectM && selected_brushes.size()) {
                 if (jorter_type == node_type_brush) {
@@ -656,6 +664,8 @@ int main() { // impure
                 } else {
                   gizmo.pos = scene[selected_brushes[0].obj].brush.origin;
                 }
+                gizmo.hit_pos = object_new_pos(gizmo.pos, move_dir,
+                                           camera->origin, ray_world, grid);
               }
 
               if (edit_mode == ObjectM)
@@ -756,11 +766,11 @@ int main() { // impure
           break;
         case SDL_SCANCODE_G:
           break;
-        case SDL_SCANCODE_3:
-          edit_mode = Face;
-          break;
         case SDL_SCANCODE_1:
           edit_mode = Vertex;
+          break;
+        case SDL_SCANCODE_3:
+          edit_mode = Face;
           break;
         case SDL_SCANCODE_5:
           edit_mode = ObjectM;
@@ -812,7 +822,7 @@ int main() { // impure
     ImGui::NewFrame();
 
     if (selected_object_class != -1) {
-      ImGui::Text(models[selected_object_class].name);
+      ImGui::Text("%s", models[selected_object_class].name);
     } else {
       ImGui::Text("");
     }
@@ -900,7 +910,7 @@ int main() { // impure
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 12 + 8, (void *)12);
     glEnableVertexAttribArray(2);
-    // glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glUseProgram(shader);
     glEnable(GL_CULL_FACE);
@@ -932,11 +942,16 @@ int main() { // impure
         switch (edit_mode) {
         case ObjectM: {
           Brush *brusher = &scene[selected_brushes[0].obj].brush;
-          brusher->origin = object_new_pos(brusher->origin, move_dir,
-                                           camera->origin, ray_world, grid);
-          gizmo.pos = brusher->origin;
+          glm::vec3 diff = gizmo.pos - gizmo.hit_pos;
+          gizmo.hit_pos = object_new_pos(gizmo.hit_pos, move_dir,
+                                     camera->origin, ray_world, grid);
+          gizmo.pos = gizmo.hit_pos + diff;
 
-          glm::vec3 orig_mod = brusher->origin - init_jort;
+          // puts(glm::to_string(gizmo.pos).c_str());
+
+          brusher->origin = gizmo.pos;
+
+          glm::vec3 orig_mod = gizmo.pos - init_jort;
           for (int i = 0; i < selected_brushes.size(); i++) {
             if (i == 0) {
               continue;
@@ -1005,6 +1020,33 @@ int main() { // impure
     // render_brushes(brushes, selected_brushes);
 
     glUniform1ui(10, 0);
+
+    // auto render_sys = world.system<Rendered, Transform3D>()
+    //   .iter([](flecs::iter it, Rendered *r, Transform3D *t3ds) {
+    //     for (int j : it) {
+    //       Rendered *rendered = &r[j];
+    //       for (int i = 0; i < rendered->meshes; i++) {
+    //         UploadedMesh *mesh = rendered->mesh;
+    //         glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(t3ds->transform));
+    //         glUniform3fv(4, 1, glm::value_ptr(rendered->material.albedo));
+    //         glUniform1i(5, rendered->material.tex != -1);
+    //         if (rendered->material.tex != -1) {
+    //           glBindTexture(GL_TEXTURE_2D, rendered->material.tex);
+    //         }
+    //         glBindVertexArray(mesh->vao);
+    //         glDrawElements(GL_TRIANGLES, mesh->elements, GL_UNSIGNED_SHORT, 0);
+    //       }
+    //     }
+    //   });
+
+    auto render_sys = world.system<Brush>()
+      .iter([](flecs::iter it, Brush *brushes) {
+        for (int j : it) {
+          Brush *rendered = &brushes[j];
+          render_brush(rendered);
+        }
+      });
+
 
     for (int i = 0; i < scene.size(); i++) {
       switch (scene[i].type) {
@@ -1075,4 +1117,5 @@ int main() { // impure
   ImGui::DestroyContext();
   SDL_DestroyWindow(window);
   SDL_Quit();
+
 }

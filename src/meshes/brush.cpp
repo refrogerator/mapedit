@@ -1,19 +1,4 @@
-struct Brush {
-  glm::vec3 origin;
-  glm::vec3 rotation;
-  glm::vec3 scale;
-  Mesh *mesh;
-  UploadedMesh *uploaded;
-  AABB *aabb;
-  UploadedMesh *aabb_debug;
-  u32 *mat;
-};
-
-struct BrushList {
-  u64 len;
-  u64 max;
-  Brush *data;
-};
+#include "brush.hpp"
 
 void update_mesh(Mesh *mesh, UploadedMesh *umesh) {
   u32 num;

@@ -1,3 +1,5 @@
+#include "scene.hpp"
+
 u32 select_node(std::vector<SceneNode> scene, glm::vec3 origin, glm::vec3 dir, float *_dist) {
   float dist = INFINITY;
   float best_dist = INFINITY;

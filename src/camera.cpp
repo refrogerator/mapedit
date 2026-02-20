@@ -1,10 +1,4 @@
-struct Camera {
-  glm::vec3 origin;
-  glm::quat rotation;
-  float pitch;
-  float yaw;
-  float fov;
-};
+#include "camera.hpp"
 
 namespace cam {
   void translate_x(struct Camera *cam, float amt) {

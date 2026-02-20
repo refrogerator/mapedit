@@ -1,7 +1,4 @@
-struct AABB {
-  glm::vec3 max;
-  glm::vec3 min;
-};
+#include "aabb.hpp"
 
 AABB *get_aabb(Mesh *mesh) {
   glm::vec3 max = glm::vec3(-INFINITY, -INFINITY, -INFINITY);

@@ -1,5 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include "gltf.hpp"
 
 int gltf_get_count(cgltf_type type) {
   switch (type) {
@@ -31,28 +31,6 @@ int gltf_type_to_gl_type(cgltf_component_type type) {
   return 0;
 }
 
-struct Material {
-  glm::vec3 albedo;
-};
-
-struct GltfMesh {
-  u32 elements;
-  u32 vao;
-  u32 tex;
-  Material material;
-  glm::mat4 transform;
-  char *name;
-  AABB *aabb;
-};
-
-struct Model {
-  cgltf_data *data;
-  GltfMesh *meshes;
-  glm::mat4 transform;
-  u32 count;
-  char *name;
-};
-
 int gltf_intersect_mesh(GltfMesh *mesh, glm::mat4 transform, glm::vec3 origin, glm::vec3 direction, float *dist) {
   AABB temp;
   temp.max = transform * mesh->transform *
@@ -62,15 +40,15 @@ int gltf_intersect_mesh(GltfMesh *mesh, glm::mat4 transform, glm::vec3 origin, g
   return intersect_ray_aabb(&temp, origin, direction, dist);
 }
 
-int gltf_intersect_model(Model *model, glm::vec3 origin, glm::vec3 direction, float *dist) {
-  int joe = 0;
-  for (int i = 0; i < model->count; i++) {
-    if (gltf_intersect_mesh(&model->meshes[i], model->transform, origin, direction, dist)) {
-      joe = 1;
-    }
-  }
-  return joe;
-}
+// int gltf_intersect_model(Model *model, glm::vec3 origin, glm::vec3 direction, float *dist) {
+//   int joe = 0;
+//   for (int i = 0; i < model->count; i++) {
+//     if (gltf_intersect_mesh(&model->meshes[i], model->transform, origin, direction, dist)) {
+//       joe = 1;
+//     }
+//   }
+//   return joe;
+// }
 
 GltfMesh gltf_upload_mesh(cgltf_node *node) {
   cgltf_mesh *mesh = node->mesh;
@@ -114,14 +92,14 @@ GltfMesh gltf_upload_mesh(cgltf_node *node) {
 
     cgltf_texture *texture = primitive->material->pbr_metallic_roughness.base_color_texture.texture;
     if (texture) {
-      printf("%s\n", texture->name);
+      // printf("%s\n", texture->name);
       int x, y, channels;
       stbi_uc *texture_data = stbi_load_from_memory((stbi_uc*)((u64)texture->image->buffer_view->buffer->data + texture->image->buffer_view->offset), texture->image->buffer_view->size, &x, &y, &channels, 4);
 
       u32 tex;
       glGenTextures(1, &tex);
 
-      mesh_.tex = tex;
+      mesh_.material.tex = tex;
 
       glBindTexture(GL_TEXTURE_2D, tex);
 
@@ -136,7 +114,7 @@ GltfMesh gltf_upload_mesh(cgltf_node *node) {
 
       stbi_image_free(texture_data);
     } else {
-      mesh_.tex = -1;
+      mesh_.material.tex = -1;
     }
 
     u32 ebo;
@@ -200,35 +178,128 @@ GltfMesh gltf_upload_mesh(cgltf_node *node) {
   return mesh_;
 }
 
-Model *gltf_upload_model(cgltf_data *data) {
-  struct Model *model = (Model*)malloc(sizeof(Model));
-  model->data = data;
-  model->count = 0;
+Model gltf_upload_model(cgltf_data *data) {
+  struct Model model = {0};
+  model.data = data;
+  model.count = 0;
   for (int i = 0; i < data->nodes_count; i++) {
     if (data->nodes[i].mesh) {
-      model->count++;
+      model.count++;
     }
   }
-  model->meshes = (GltfMesh*)malloc(sizeof(GltfMesh) * model->count);
+  model.meshes = (GltfMesh*)malloc(sizeof(GltfMesh) * model.count);
   int fart = 0;
   for (int i = 0; i < data->nodes_count; i++) {
     if (data->nodes[i].mesh) {
-      model->meshes[fart] = gltf_upload_mesh(&data->nodes[i]);
+      model.meshes[fart] = gltf_upload_mesh(&data->nodes[i]);
+      model.meshes[fart].mesh = data->nodes[i].mesh;
       fart++;
     }
   }
-  model->transform = glm::mat4(1.0f);
+  model.transform = glm::mat4(1.0f);
   return model;
 }
 
+void gltf_mesh_get_physics(GltfMesh *_mesh, Physics *chud) {
+  cgltf_mesh *mesh = _mesh->mesh;
+  for (int i = 0; i < mesh->primitives_count; i++) {
+    cgltf_primitive *primitive = &mesh->primitives[i];
+    cgltf_accessor *indices = primitive->indices;
+    for (int a = 0; a < primitive->attributes_count; a++) {
+      cgltf_attribute *attr = &primitive->attributes[a];
+      cgltf_accessor *accessor = attr->data;
+      switch (attr->type) {
+        case cgltf_attribute_type_position:
+          u32 *inds = (u32*)((u64)indices->buffer_view->buffer->data + indices->buffer_view->offset);
+          for (int ind = 0; ind < indices->count; ind++) {
+            float *vert = (float*)(((u64)primitive->attributes->data->buffer_view->buffer->data + (u64)accessor->buffer_view->offset + (u64)accessor->offset) + (u64)accessor->stride * (u64)inds[ind]);
+            Triangle tri;
+            tri.v0 = { vert[0], vert[1], vert[2] };
+            ind++;
+            vert = (float*)(((u64)primitive->attributes->data->buffer_view->buffer->data + (u64)accessor->buffer_view->offset + (u64)accessor->offset) + (u64)accessor->stride * (u64)inds[ind]);
+            tri.v1 = { vert[0], vert[1], vert[2] };
+            ind++;
+            vert = (float*)(((u64)primitive->attributes->data->buffer_view->buffer->data + (u64)accessor->buffer_view->offset + (u64)accessor->offset) + (u64)accessor->stride * (u64)inds[ind]);
+            tri.v2 = { vert[0], vert[1], vert[2] };
+            chud->tris.push_back(tri);
+          }
+          break;
+      }
+    }
+  }
+}
+
+Physics gltf_model_get_physics(Model *model) {
+  Physics phys = {};
+  for (int i = 0; i < model->count; i++) {
+    gltf_mesh_get_physics(&model->meshes[i], &phys);
+  }
+  return phys;
+}
+
+// int gltf_intersect_mesh(GltfMesh *_mesh, glm::mat4 tr, glm::vec3 origin, glm::vec3 direction, float *_dist) {
+//   glm::mat4 transform = _mesh->transform;
+//   cgltf_mesh *mesh = _mesh->mesh;
+//   int res = 0;
+//   float dist = INFINITY;
+//   float best_dist = INFINITY;
+//   glm::vec2 test_result;
+//   for (int i = 0; i < mesh->primitives_count; i++) {
+//     cgltf_primitive *primitive = &mesh->primitives[i];
+//     for (int a = 0; a < primitive->attributes_count; a++) {
+//       cgltf_attribute *attr = &primitive->attributes[a];
+//       cgltf_accessor *accessor = attr->data;
+//       switch (attr->type) {
+//         case cgltf_attribute_type_position:
+//           for (int trii = 0; trii < accessor->count; trii++) {
+//             glm::vec3 tri[3];
+//             for (int verti = 0; verti < 3; verti++) {
+//               float *vert = (float*)(((u64)primitive->attributes->data->buffer_view->buffer->data + (u64)accessor->buffer_view->offset + (u64)accessor->offset) + (u64)accessor->stride * ((u64)trii * 3 + verti));
+//               // tri[verti].x = vert[0];
+//               // tri[verti].y = vert[1];
+//               // tri[verti].z = vert[2];
+//               tri[verti] = glm::vec4(vert[0], vert[1], vert[2], 1.0);
+//             }
+//             if (glm::intersectRayTriangle(origin, direction, tri[0], tri[1], tri[2], test_result, dist)) {
+//               res = 1;
+//               if (dist >= 0.0 && dist < best_dist) {
+//                 best_dist = dist;
+//               }
+//             }
+//           }
+//           break;
+//       }
+//     }
+//   }
+//   *_dist = best_dist;
+//   return 1;
+// }
+
+int gltf_intersect_model(Model *model, glm::vec3 origin, glm::vec3 direction, float *_dist) {
+  int res = 0;
+  float dist = 0;
+  float best_dist = INFINITY;
+  for (int i = 0; i < model->count; i++) {
+    if (gltf_intersect_mesh(&model->meshes[i], model->transform, origin, direction, &dist)) {
+      if (dist < best_dist) {
+        best_dist = dist;
+      }
+      res = 1;
+    }
+  }
+  *_dist = best_dist;
+  return res;
+}
+
 void render_model(Model *model) {
+  glm::mat4 chud = glm::mat4(1.0f);
   for (int i = 0; i < model->count; i++) {
     GltfMesh *mesh = &model->meshes[i];
     glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model->transform * mesh->transform));
     glUniform3fv(4, 1, glm::value_ptr(mesh->material.albedo));
-    glUniform1i(5, mesh->tex != -1);
-    if (mesh->tex != -1) {
-      glBindTexture(GL_TEXTURE_2D, mesh->tex);
+    glUniform1i(5, mesh->material.tex != -1);
+    if (mesh->material.tex != -1) {
+      glBindTexture(GL_TEXTURE_2D, mesh->material.tex);
     }
     glBindVertexArray(mesh->vao);
     glDrawElements(GL_TRIANGLES, mesh->elements, GL_UNSIGNED_SHORT, 0);
@@ -244,10 +315,10 @@ void render_model_jort(Model *model, int index) {
     } else {
       glUniform3fv(4, 1, glm::value_ptr(mesh->material.albedo * glm::vec3(1.4f)));
     }
-    glUniform1i(5, mesh->tex != -1);
+    glUniform1i(5, mesh->material.tex != -1);
 
-    if (mesh->tex != -1) {
-      glBindTexture(GL_TEXTURE_2D, mesh->tex);
+    if (mesh->material.tex != -1) {
+      glBindTexture(GL_TEXTURE_2D, mesh->material.tex);
     }
 
     glBindVertexArray(mesh->vao);

@@ -3,7 +3,7 @@ project(
   ['c', 'cpp'],
   version : '0.1',
   meson_version : '>= 1.3.0',
-  default_options : ['warning_level=3', 'cpp_std=c++14'],
+  default_options : ['warning_level=3', 'cpp_std=c++23', 'c_std=gnu99'],
 )
 
 dependencies = [
@@ -22,7 +22,9 @@ exe = executable(
   'src/meshes/brush.cpp',
   'src/renderer/shader.cpp',
   'src/scene.cpp',
-  '3rdparty/flecs/flecs.c',
+
+  '3rdparty/flecs/distr/flecs.c',
+  '3rdparty/cgltf.c',
 
 	# gcc -lstdc++ -o vulkan -lSDL2 -lEGL -lGL -lOpenGL -lm src/main.cpp -I3rdparty -ggdb -Werror=return-type -I3rdparty/imgui -I3rdparty/imgui/backends 3rdparty/imgui/backends/imgui_impl_sdl2.o 3rdparty/imgui/backends/imgui_impl_opengl3.o 3rdparty/imgui/imgui*.o 3rdparty/flecs/flecs.o -fpermissive
   # objects: [
@@ -35,7 +37,9 @@ exe = executable(
   #   '3rdparty/imgui/imgui_widgets.o'
   # ],
 
-  cpp_args: ['-Wno-switch'],
+  c_args: ['-std=gnu99'],
+  cpp_args: ['-Wno-switch', '-std=c++23'],
+  cpp_pch: 'pch/mapedit_pch.h',
   dependencies : dependencies,
   include_directories: include_directories(['3rdparty', 'src']))
 

@@ -1,107 +1,140 @@
 [
   {
-    "arguments": [
-      "/usr/bin/clang",
-      "-c",
-      "-I3rdparty",
-      "-ggdb",
-      "-Werror=return-type",
-      "-I3rdparty/imgui",
-      "-I3rdparty/imgui/backends",
-      "3rdparty/imgui/backends/imgui_impl_sdl2.o",
-      "3rdparty/imgui/backends/imgui_impl_opengl3.o",
-      "3rdparty/imgui/imgui.o",
-      "3rdparty/imgui/imgui_demo.o",
-      "3rdparty/imgui/imgui_draw.o",
-      "3rdparty/imgui/imgui_tables.o",
-      "3rdparty/imgui/imgui_widgets.o",
-      "-o",
-      "vulkan",
-      "src/main.cpp"
-    ],
-    "directory": "/home/robin/dev/mapedit",
-    "file": "/home/robin/dev/mapedit/src/main.cpp",
-    "output": "/home/robin/dev/mapedit/vulkan"
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/imgui.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/imgui.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/imgui.cpp.o -c ../subprojects/imgui-1.92.5/imgui.cpp",
+    "file": "../subprojects/imgui-1.92.5/imgui.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/imgui.cpp.o"
   },
   {
-    "arguments": [
-      "/usr/bin/clang-16",
-      "-cc1",
-      "-triple",
-      "x86_64-pc-linux-gnu",
-      "-emit-obj",
-      "-mrelax-all",
-      "-disable-free",
-      "-clear-ast-before-backend",
-      "-disable-llvm-verifier",
-      "-discard-value-names",
-      "-main-file-name",
-      "-mrelocation-model",
-      "pic",
-      "-pic-level",
-      "2",
-      "-pic-is-pie",
-      "-mframe-pointer=all",
-      "-fmath-errno",
-      "-ffp-contract=on",
-      "-fno-rounding-math",
-      "-mconstructor-aliases",
-      "-funwind-tables=2",
-      "-target-cpu",
-      "x86-64",
-      "-tune-cpu",
-      "generic",
-      "-mllvm",
-      "-treat-scalable-fixed-error-as-warning",
-      "-debug-info-kind=constructor",
-      "-dwarf-version=5",
-      "-debugger-tuning=gdb",
-      "-fcoverage-compilation-dir=/home/robin/dev/mapedit",
-      "-resource-dir",
-      "/usr/lib/clang/16",
-      "-I",
-      "3rdparty",
-      "-I",
-      "3rdparty/imgui",
-      "-I",
-      "3rdparty/imgui/backends",
-      "-internal-isystem",
-      "/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/13.2.1/../../../../include/c++/13.2.1",
-      "-internal-isystem",
-      "/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/13.2.1/../../../../include/c++/13.2.1/x86_64-pc-linux-gnu",
-      "-internal-isystem",
-      "/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/13.2.1/../../../../include/c++/13.2.1/backward",
-      "-internal-isystem",
-      "/usr/lib/clang/16/include",
-      "-internal-isystem",
-      "/usr/local/include",
-      "-internal-isystem",
-      "/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/13.2.1/../../../../x86_64-pc-linux-gnu/include",
-      "-internal-externc-isystem",
-      "/include",
-      "-internal-externc-isystem",
-      "/usr/include",
-      "-Werror=return-type",
-      "-fdeprecated-macro",
-      "-fdebug-compilation-dir=/home/robin/dev/mapedit",
-      "-ferror-limit",
-      "19",
-      "-stack-protector",
-      "2",
-      "-fgnuc-version=4.2.1",
-      "-fcxx-exceptions",
-      "-fexceptions",
-      "-fcolor-diagnostics",
-      "-faddrsig",
-      "-D__GCC_HAVE_DWARF2_CFI_ASM=1",
-      "-x",
-      "c++",
-      "-o",
-      "/tmp/main-fe0d5f.o",
-      "src/main.cpp"
-    ],
-    "directory": "/home/robin/dev/mapedit",
-    "file": "/home/robin/dev/mapedit/src/main.cpp",
-    "output": "/tmp/main-fe0d5f.o"
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/imgui_demo.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/imgui_demo.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/imgui_demo.cpp.o -c ../subprojects/imgui-1.92.5/imgui_demo.cpp",
+    "file": "../subprojects/imgui-1.92.5/imgui_demo.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/imgui_demo.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/imgui_draw.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/imgui_draw.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/imgui_draw.cpp.o -c ../subprojects/imgui-1.92.5/imgui_draw.cpp",
+    "file": "../subprojects/imgui-1.92.5/imgui_draw.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/imgui_draw.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/imgui_tables.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/imgui_tables.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/imgui_tables.cpp.o -c ../subprojects/imgui-1.92.5/imgui_tables.cpp",
+    "file": "../subprojects/imgui-1.92.5/imgui_tables.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/imgui_tables.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/imgui_widgets.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/imgui_widgets.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/imgui_widgets.cpp.o -c ../subprojects/imgui-1.92.5/imgui_widgets.cpp",
+    "file": "../subprojects/imgui-1.92.5/imgui_widgets.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/imgui_widgets.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/misc_cpp_imgui_stdlib.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/misc_cpp_imgui_stdlib.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/misc_cpp_imgui_stdlib.cpp.o -c ../subprojects/imgui-1.92.5/misc/cpp/imgui_stdlib.cpp",
+    "file": "../subprojects/imgui-1.92.5/misc/cpp/imgui_stdlib.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/misc_cpp_imgui_stdlib.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_opengl3.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_opengl3.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_opengl3.cpp.o -c ../subprojects/imgui-1.92.5/backends/imgui_impl_opengl3.cpp",
+    "file": "../subprojects/imgui-1.92.5/backends/imgui_impl_opengl3.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_opengl3.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdlrenderer2.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdlrenderer2.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdlrenderer2.cpp.o -c ../subprojects/imgui-1.92.5/backends/imgui_impl_sdlrenderer2.cpp",
+    "file": "../subprojects/imgui-1.92.5/backends/imgui_impl_sdlrenderer2.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdlrenderer2.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdlrenderer3.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdlrenderer3.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdlrenderer3.cpp.o -c ../subprojects/imgui-1.92.5/backends/imgui_impl_sdlrenderer3.cpp",
+    "file": "../subprojects/imgui-1.92.5/backends/imgui_impl_sdlrenderer3.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdlrenderer3.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdlgpu3.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdlgpu3.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdlgpu3.cpp.o -c ../subprojects/imgui-1.92.5/backends/imgui_impl_sdlgpu3.cpp",
+    "file": "../subprojects/imgui-1.92.5/backends/imgui_impl_sdlgpu3.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdlgpu3.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_vulkan.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_vulkan.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_vulkan.cpp.o -c ../subprojects/imgui-1.92.5/backends/imgui_impl_vulkan.cpp",
+    "file": "../subprojects/imgui-1.92.5/backends/imgui_impl_vulkan.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_vulkan.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_glfw.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_glfw.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_glfw.cpp.o -c ../subprojects/imgui-1.92.5/backends/imgui_impl_glfw.cpp",
+    "file": "../subprojects/imgui-1.92.5/backends/imgui_impl_glfw.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_glfw.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdl2.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdl2.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdl2.cpp.o -c ../subprojects/imgui-1.92.5/backends/imgui_impl_sdl2.cpp",
+    "file": "../subprojects/imgui-1.92.5/backends/imgui_impl_sdl2.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdl2.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Isubprojects/imgui-1.92.5/libimgui.so.p -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fvisibility=hidden -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++17 -O0 -g -fPIC -D_GNU_SOURCE=1 -D_REENTRANT '-DIMGUI_API=__attribute__((visibility(\"default\")))' -MD -MQ subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdl3.cpp.o -MF subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdl3.cpp.o.d -o subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdl3.cpp.o -c ../subprojects/imgui-1.92.5/backends/imgui_impl_sdl3.cpp",
+    "file": "../subprojects/imgui-1.92.5/backends/imgui_impl_sdl3.cpp",
+    "output": "subprojects/imgui-1.92.5/libimgui.so.p/backends_imgui_impl_sdl3.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Imapedit.p -I. -I.. -I../3rdparty -I../src -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++14 -O0 -g '-DIMGUI_API=__attribute__((visibility(\"default\")))' -D_GNU_SOURCE=1 -D_REENTRANT -Wno-switch -std=c++23 -MD -MQ mapedit.p/src_main.cpp.o -MF mapedit.p/src_main.cpp.o.d -o mapedit.p/src_main.cpp.o -c ../src/main.cpp",
+    "file": "../src/main.cpp",
+    "output": "mapedit.p/src_main.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Imapedit.p -I. -I.. -I../3rdparty -I../src -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++14 -O0 -g '-DIMGUI_API=__attribute__((visibility(\"default\")))' -D_GNU_SOURCE=1 -D_REENTRANT -Wno-switch -std=c++23 -MD -MQ mapedit.p/src_camera.cpp.o -MF mapedit.p/src_camera.cpp.o.d -o mapedit.p/src_camera.cpp.o -c ../src/camera.cpp",
+    "file": "../src/camera.cpp",
+    "output": "mapedit.p/src_camera.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Imapedit.p -I. -I.. -I../3rdparty -I../src -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++14 -O0 -g '-DIMGUI_API=__attribute__((visibility(\"default\")))' -D_GNU_SOURCE=1 -D_REENTRANT -Wno-switch -std=c++23 -MD -MQ mapedit.p/src_meshes_editing.cpp.o -MF mapedit.p/src_meshes_editing.cpp.o.d -o mapedit.p/src_meshes_editing.cpp.o -c ../src/meshes/editing.cpp",
+    "file": "../src/meshes/editing.cpp",
+    "output": "mapedit.p/src_meshes_editing.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Imapedit.p -I. -I.. -I../3rdparty -I../src -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++14 -O0 -g '-DIMGUI_API=__attribute__((visibility(\"default\")))' -D_GNU_SOURCE=1 -D_REENTRANT -Wno-switch -std=c++23 -MD -MQ mapedit.p/src_physics_aabb.cpp.o -MF mapedit.p/src_physics_aabb.cpp.o.d -o mapedit.p/src_physics_aabb.cpp.o -c ../src/physics/aabb.cpp",
+    "file": "../src/physics/aabb.cpp",
+    "output": "mapedit.p/src_physics_aabb.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Imapedit.p -I. -I.. -I../3rdparty -I../src -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++14 -O0 -g '-DIMGUI_API=__attribute__((visibility(\"default\")))' -D_GNU_SOURCE=1 -D_REENTRANT -Wno-switch -std=c++23 -MD -MQ mapedit.p/src_renderer_gltf.cpp.o -MF mapedit.p/src_renderer_gltf.cpp.o.d -o mapedit.p/src_renderer_gltf.cpp.o -c ../src/renderer/gltf.cpp",
+    "file": "../src/renderer/gltf.cpp",
+    "output": "mapedit.p/src_renderer_gltf.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Imapedit.p -I. -I.. -I../3rdparty -I../src -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++14 -O0 -g '-DIMGUI_API=__attribute__((visibility(\"default\")))' -D_GNU_SOURCE=1 -D_REENTRANT -Wno-switch -std=c++23 -MD -MQ mapedit.p/src_meshes_brush.cpp.o -MF mapedit.p/src_meshes_brush.cpp.o.d -o mapedit.p/src_meshes_brush.cpp.o -c ../src/meshes/brush.cpp",
+    "file": "../src/meshes/brush.cpp",
+    "output": "mapedit.p/src_meshes_brush.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Imapedit.p -I. -I.. -I../3rdparty -I../src -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++14 -O0 -g '-DIMGUI_API=__attribute__((visibility(\"default\")))' -D_GNU_SOURCE=1 -D_REENTRANT -Wno-switch -std=c++23 -MD -MQ mapedit.p/src_renderer_shader.cpp.o -MF mapedit.p/src_renderer_shader.cpp.o.d -o mapedit.p/src_renderer_shader.cpp.o -c ../src/renderer/shader.cpp",
+    "file": "../src/renderer/shader.cpp",
+    "output": "mapedit.p/src_renderer_shader.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "c++ -Imapedit.p -I. -I.. -I../3rdparty -I../src -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++14 -O0 -g '-DIMGUI_API=__attribute__((visibility(\"default\")))' -D_GNU_SOURCE=1 -D_REENTRANT -Wno-switch -std=c++23 -MD -MQ mapedit.p/src_scene.cpp.o -MF mapedit.p/src_scene.cpp.o.d -o mapedit.p/src_scene.cpp.o -c ../src/scene.cpp",
+    "file": "../src/scene.cpp",
+    "output": "mapedit.p/src_scene.cpp.o"
+  },
+  {
+    "directory": "/home/robin/dev/mapedit/build",
+    "command": "cc -Imapedit.p -I. -I.. -I../3rdparty -I../src -Isubprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5 -I../subprojects/imgui-1.92.5/backends -I/usr/include/SDL2 -fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -O0 -g '-DIMGUI_API=__attribute__((visibility(\"default\")))' -D_GNU_SOURCE=1 -D_REENTRANT -std=gnu99 -MD -MQ mapedit.p/3rdparty_flecs_distr_flecs.c.o -MF mapedit.p/3rdparty_flecs_distr_flecs.c.o.d -o mapedit.p/3rdparty_flecs_distr_flecs.c.o -c ../3rdparty/flecs/distr/flecs.c",
+    "file": "../3rdparty/flecs/distr/flecs.c",
+    "output": "mapedit.p/3rdparty_flecs_distr_flecs.c.o"
   }
 ]

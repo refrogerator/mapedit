@@ -1,12 +1,16 @@
 #include "aabb.hpp"
+#include <print>
+using std::println;
 
-AABB *get_aabb(Mesh *mesh) {
+AABB get_aabb(Mesh *mesh) {
   glm::vec3 max = glm::vec3(-INFINITY, -INFINITY, -INFINITY);
   glm::vec3 min = glm::vec3(INFINITY, INFINITY, INFINITY);
+
   float *maxp = glm::value_ptr(max);
   float *minp = glm::value_ptr(min);
-  AABB *aabb = (AABB*)malloc(sizeof(AABB));
-  for (auto &vert : mesh->verts) {
+  AABB aabb;
+
+  for (glm::vec3 &vert : mesh->verts) {
     float *cur_vert = glm::value_ptr(vert);
     for (int i = 0; i < 3; i++) {
       if (cur_vert[i] > maxp[i]) {
@@ -16,14 +20,16 @@ AABB *get_aabb(Mesh *mesh) {
       }
     }
   }
-  aabb->max = max;
-  aabb->min = min;
+
+  aabb.max = max;
+  aabb.min = min;
   return aabb;
 }
 
 Mesh *get_aabb_mesh(AABB *aabb) {
+  // println("max: {}, min: {}", aabb->max, aabb->min);
   Mesh *cube = get_cube();
-  for (auto &vert : cube->verts) {
+  for (glm::vec3 &vert : cube->verts) {
     float *cur_vert = glm::value_ptr(vert);
     for (int i = 0; i < 3; i++) {
       if (cur_vert[i] > 0.0) {
@@ -33,6 +39,7 @@ Mesh *get_aabb_mesh(AABB *aabb) {
       }
     }
   }
+  // println("verts: {}", cube->verts);
   return cube;
 }
 
@@ -99,7 +106,8 @@ u32 intersect_ray_aabb(AABB *aabb, glm::vec3 origin, glm::vec3 direction, float 
 }
 
 glm::vec3 get_center(AABB *aabb) {
-  glm::vec3 center = (aabb->min + aabb->max) / 2.0f;
+  glm::vec3 center = (aabb->min + aabb->max) / 2;
+  println("center: {}, min: {}, max: {}", center, aabb->min, aabb->max);
   // printf("%s\n", to_string(aabb->min).c_str());
   // printf("%s\n", to_string(aabb->max).c_str());
   // printf("%s\n", to_string(center).c_str());

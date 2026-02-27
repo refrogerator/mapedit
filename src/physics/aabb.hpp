@@ -10,7 +10,7 @@ struct AABB {
   glm::vec3 min;
 };
 
-AABB *get_aabb(Mesh *mesh);
+AABB get_aabb(Mesh *mesh);
 
 Mesh *get_aabb_mesh(AABB *aabb);
 

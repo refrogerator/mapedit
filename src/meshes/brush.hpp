@@ -16,9 +16,10 @@ struct Brush {
   glm::vec3 rotation;
   glm::vec3 scale;
   Mesh *mesh;
-  UploadedMesh *uploaded;
-  AABB *aabb;
-  UploadedMesh *aabb_debug;
+  UploadedMesh uploaded;
+  UploadedMesh edges;
+  AABB aabb;
+  UploadedMesh aabb_debug;
   u32 *mat;
 };
 
@@ -30,7 +31,7 @@ struct BrushList {
 
 void update_mesh(Mesh *mesh, UploadedMesh *umesh);
 
-UploadedMesh *upload_mesh(Mesh *mesh);
+UploadedMesh upload_mesh(bool visible);
 
 void render_mesh(UploadedMesh *mesh);
 
@@ -48,12 +49,14 @@ BrushList new_brushlist();
 
 BrushList remove_brush(BrushList brushes, u32 index);
 
-void render_brushes_points(BrushList brushes, std::vector<Selection> selected);
+void render_brush_points(Brush *brush);
 
 void render_brushes(BrushList brushes, std::vector<Selection> selected);
 
 Brush *get_brush(BrushList brushes, u32 index);
 
 Brush *get_brush_ptr(BrushList brushes, u32 index);
+
+void recenter_brush(Brush *brush);
 
 void update_brush(Brush *brush);

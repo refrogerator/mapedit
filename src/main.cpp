@@ -1,6 +1,6 @@
-#include <cstdio>
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glad.c"
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_scancode.h>
@@ -17,13 +17,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unordered_map>
-#include "flecs.h"
+#include <flecs.h>
 
-#define CGLTF_IMPLEMENTATION
 #include "cgltf.h"
-
 #include <algorithm>
 #include <vector>
+#include <filesystem>
+#include <print>
+using std::println;
+using std::print;
+
+#include <format>
+#include <dirent.h>
+#include <sys/types.h>
+
+#include "imgui.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_impl_sdl2.h"
 
 #include "camera.hpp"
 #include "common.h"
@@ -33,13 +43,6 @@
 #include "meshes/brush.hpp"
 #include "renderer/shader.hpp"
 #include "scene.hpp"
-
-#include <dirent.h>
-#include <sys/types.h>
-
-#include "imgui.h"
-#include "imgui_impl_opengl3.h"
-#include "imgui_impl_sdl2.h"
 
 enum ValueType {};
 
@@ -115,6 +118,14 @@ enum EditMode {
   ObjectM,
 };
 
+enum MoveState {
+    None,
+    Selecting,
+    Selected,
+    Moving,
+    Deselecting,
+};
+
 enum EditTool {
   Select,
 };
@@ -134,8 +145,8 @@ glm::vec3 object_new_pos(glm::vec3 cur_pos, glm::vec3 plane, glm::vec3 origin,
       glm::length((cur_pos - origin) * plane) / glm::length(dir * plane) * dir;
   glm::vec3 jonathan = glm::vec3(round((origin + res) / griddiv) * griddiv) *
                        (glm::vec3(1.0f) - plane);
-  printf("jort\n");
-  printf("%s\n", glm::to_string(res).c_str());
+  // printf("jort\n");
+  // printf("%s\n", glm::to_string(res).c_str());
   // printf("%s\n", glm::to_string(jonathan + cur_pos * plane).c_str());
   // printf("%s\n", glm::to_string(plane).c_str());
   // printf("%s\n", glm::to_string(cur_pos * plane).c_str());
@@ -184,11 +195,26 @@ struct Gizmo {
 struct Window {
 };
 
-int main() { // impure
-             //
-             //
-             //
+struct DefaultShader {
+    u32 program;
+    glm::vec3 albedo;
+    bool has_tex;
+    bool selected;
+    glm::vec3 viewPos;
+    u32 tex;
+    bool gridt;
+    bool indexed;
+    std::vector<u32> jortnite;
 
+
+    void update_uniforms();
+};
+
+void DefaultShader::update_uniforms() {
+    // glUniform3fv(glGetUniformLocation("albedo"), 
+}
+
+int main() { // impure
   flecs::world world;
 
   world.component<Transform3D>();
@@ -209,53 +235,42 @@ int main() { // impure
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+  SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+  SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
   SDL_GLContext gl_context = SDL_GL_CreateContext(window);
   gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
 
   glViewport(0, 0, 1920, 1080);
 
   std::vector<Model> models;
-  DIR *dp;
-  struct dirent *ep;
 
-  dp = opendir("./models");
-
-  char *temp = (char *)malloc(100);
-  if (dp != NULL) {
-    while (ep = readdir(dp)) {
-      int len = strlen(ep->d_name);
-      if (len > 4 && !strcmp(ep->d_name + len - 4, ".glb")) {
-        sprintf(temp, "./models/%s", ep->d_name);
-        cgltf_options options{};
-        cgltf_data *data = NULL;
-        cgltf_result result = cgltf_parse_file(&options, temp, &data);
-        if (result != cgltf_result_success) {
-          continue;
-        }
-
-        cgltf_load_buffers(&options, data, "./models/");
-
-        Model model = gltf_upload_model(data);
-
-        puts(ep->d_name);
-
-        char *name = (char *)malloc(len+1);
-        memcpy(name, ep->d_name, len);
-        name[len] = 0;
-
-        model.name = name;
-
-        // flecs::entity ent = world.entity(name).set(model);
-        models.push_back(model);
-
-        // cgltf_free(data);
+  for (const auto &entry : std::filesystem::directory_iterator("./models")) {
+    if (entry.path().extension() == ".glb") {
+      // println("{}", entry.path().extension().string());
+      cgltf_options options{};
+      cgltf_data *data = NULL;
+      cgltf_result result = cgltf_parse_file(&options, entry.path().c_str(), &data);
+      if (result != cgltf_result_success) {
+        continue;
       }
+
+      cgltf_load_buffers(&options, data, "./models/");
+
+      Model model = gltf_upload_model(data);
+
+      model.name = entry.path().filename();
+
+      // flecs::entity ent = world.entity(name).set(model);
+      models.push_back(model);
+
+      // cgltf_free(data);
     }
-    closedir(dp);
   }
 
-  for (int i = 0; i < models.size(); i++) {
-    puts(models[i].name);
+  for (Model &model : models) {
+    println("g{}", model.name);
   }
 
   IMGUI_CHECKVERSION();
@@ -265,7 +280,7 @@ int main() { // impure
       ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
   io.ConfigFlags |=
       ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
-  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
   // Setup Platform/Renderer backends
   ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
@@ -279,6 +294,7 @@ int main() { // impure
 
   Gizmo gizmo;
   gizmo.pos = glm::vec3(0.0f);
+  gizmo.hit_pos = glm::vec3(0.0f);
   Model model = gltf_upload_model(data);
   gizmo.model = &model;
   gizmo.visible = 1;
@@ -288,11 +304,13 @@ int main() { // impure
   u32 vert_shader = loadShader("fortnite.vert", GL_VERTEX_SHADER);
   u32 frag_shader = loadShader("fortnite.frag", GL_FRAGMENT_SHADER);
   u32 grid_fshader = loadShader("grid.frag", GL_FRAGMENT_SHADER);
+  u32 solid_fshader = loadShader("solid_color.frag", GL_FRAGMENT_SHADER);
 
   u32 textv = loadShader("text.vert", GL_VERTEX_SHADER);
   u32 textf = loadShader("text.frag", GL_FRAGMENT_SHADER);
 
   u32 shader = createProgram(vert_shader, frag_shader, false);
+  u32 solid_shader = createProgram(vert_shader, solid_fshader, false);
   u32 grid_shader = createProgram(vert_shader, grid_fshader, true);
   u32 text_shader = createProgram(textv, textf, true);
 
@@ -316,9 +334,9 @@ int main() { // impure
 
   // SDL_GL_SetSwapInterval(0);
 
-  u32 frametime_total = 0;
-  float frametime = 0.0;
-  float fps = 0.0;
+  double frametime_total = 0;
+  double frametime = 0.0;
+  double fps = 0.0;
 
   int frames = 0;
 
@@ -327,6 +345,8 @@ int main() { // impure
   int x, y, channels;
   stbi_uc *texture_data =
       stbi_load("textures/cobble.png", &x, &y, &channels, 0);
+
+  SDL_GL_SetSwapInterval(1);
 
   u32 tex;
   glGenTextures(1, &tex);
@@ -392,12 +412,12 @@ int main() { // impure
   int mx, my;
   SDL_GetMouseState(&mx, &my);
 
-  u32 moving = 0;
+  u32 moving = None;
   u32 vertical = 0;
 
   EditMode edit_mode = ObjectM;
 
-  u32 wireframe = 1;
+  u32 wireframe = 0;
 
   glm::vec3 init_jort;
   std::vector<glm::vec3> init_jorts;
@@ -405,7 +425,7 @@ int main() { // impure
 
   std::vector<Selection> selected_brushes;
 
-  glm::vec3 move_dir;
+  glm::vec3 move_dir = glm::vec3(1);
   int gizmoind = 0;
 
   UploadedMesh *aabb_mesh;
@@ -420,20 +440,24 @@ int main() { // impure
     u32 cur_time = SDL_GetTicks();
     // printf("%u - %u, %u\n", cur_time, time_old, delta_8);
     u32 delta_int = cur_time - time_old;
-    frametime_total += delta_int;
-    if (frametime_total > 0.1) {
-      frametime = (float)frametime_total / 1000.0 / (float)frames;
-      frametime_total = 0;
-      fps = 1.0 / frametime;
-      frames = 0;
-    }
     u64 delta_uint = SDL_GetPerformanceCounter() - last_delta_uint;
     last_delta_uint = SDL_GetPerformanceCounter();
     double delta_ = (double)delta_uint / (double)SDL_GetPerformanceFrequency();
     // printf("%lf, %lf, %lu\n", fps, 1.0 / delta_,
     // SDL_GetPerformanceFrequency());
-    float delta = (float)(delta_int) / 1000.0f;
+    double delta = (double)(delta_int) / 1000.0f;
     time_old = cur_time;
+
+    if (frametime_total > 0.1) {
+      // println("{}", frames);
+      // println("{}", frametime_total);
+      frametime = frametime_total / (double)frames;
+      frametime_total = 0;
+      fps = 1.0 / frametime;
+      // println("{}", fps);
+      frames = 0;
+    }
+    frametime_total += delta;
 
     camera->rotation = cam::rotation(camera);
 
@@ -534,7 +558,7 @@ int main() { // impure
             }
 
             int is_present = 0;
-            if (moving == 2 && gizmo.visible) {
+            if (moving == Selected && gizmo.visible) {
               for (int i = 0; i < gizmo.model->count; i++) {
                 float diste;
                 GltfMesh *meshe = &gizmo.model->meshes[i];
@@ -543,22 +567,19 @@ int main() { // impure
                            glm::vec4(meshe->aabb->max, 1.0);
                 temp.min = gizmo.model->transform * meshe->transform *
                            glm::vec4(meshe->aabb->min, 1.0);
-                if (intersect_ray_aabb(&temp, camera->origin, ray_world,
-                                       &diste)) {
-                  // Brush *b = new_brush();
-                  // b->origin = gizmo.hit_pos;
-                  // add_brush(&scene, *b);
-                  // // std::cout << gizmo.hit_pos << " " << gizmo.pos;
-                  // printf("%s\n", glm::to_string(gizmo.hit_pos).c_str());
-                  // printf("%s\n", glm::to_string(gizmo.pos).c_str());
-                  is_present = 1;
-                }
+                if (intersect_ray_aabb(&temp, camera->origin, ray_world, &diste)) 
+                    { is_present = 1; }
               }
             }
             u32 idx = 0;
 
+            if (moving != Moving) {
             switch (edit_mode) {
             case Vertex: {
+              if (~SDL_GetModState() & KMOD_LSHIFT && !is_present && jorter == -1) {
+                selected_brushes.clear();
+              }
+
               // Brush *brush = get_brush(brushes, selected_brushes[0].obj);
               int selected_vert = -1;
               int selected_brush = -1;
@@ -588,16 +609,22 @@ int main() { // impure
                   }
                 }
               }
+              
               if (selected_vert == -1) {
                 if (~SDL_GetModState() & KMOD_LSHIFT && !is_present) {
                   selected_brushes.clear();
                   init_jorts.clear();
                   if (jorter == -1) {
-                    moving = 5;
+                    moving = Deselecting;
                   }
                 }
                 break;
               }
+
+              Brush *brush = &scene[selected_brush].brush;
+              glm::vec3 vert = brush->mesh->verts[selected_vert];
+              gizmo.pos = vert;
+              gizmo.visible = true;
 
               int brush_elem = -1;
               int vert_elem = 0;
@@ -613,6 +640,7 @@ int main() { // impure
                   break;
                 }
               }
+
               if (selected_brush != -1 && !is_present) {
                 if (brush_elem == -1) {
                   selected_brushes.push_back(Selection{(u32)selected_brush});
@@ -622,17 +650,16 @@ int main() { // impure
                   selected_brushes[brush_elem].verts.push_back(selected_vert);
                 }
                 for (u32 i : selected_brushes[brush_elem].verts) {
-                  printf("%i\n", i);
+                  println("{}", i);
                 }
               }
             } break;
-            case Face:
             case ObjectM: {
               if (~SDL_GetModState() & KMOD_LSHIFT && !is_present) {
                 selected_brushes.clear();
                 init_jorts.clear();
                 if (jorter == -1) {
-                  moving = 5;
+                  moving = Deselecting;
                 }
               }
 
@@ -657,23 +684,46 @@ int main() { // impure
               //     init_jort = scene[selected_brushes[0].obj].object.pos;
               //   }
               // }
-
-              if (edit_mode == ObjectM && selected_brushes.size()) {
+              
+              if (selected_brushes.size()) {
                 if (jorter_type == node_type_brush) {
                   gizmo.pos = scene[selected_brushes[0].obj].brush.origin;
                 } else {
-                  gizmo.pos = scene[selected_brushes[0].obj].brush.origin;
+                  gizmo.pos = scene[selected_brushes[0].obj].object.pos;
                 }
-                gizmo.hit_pos = object_new_pos(gizmo.pos, move_dir,
-                                           camera->origin, ray_world, grid);
               }
 
-              if (edit_mode == ObjectM)
-                break;
+              break;
+            }
+            case Face: {
+              if (jorter_type != node_type_brush)
+                 break;
+
+              if (~SDL_GetModState() & KMOD_LSHIFT && !is_present) {
+                selected_brushes.clear();
+                init_jorts.clear();
+                if (jorter == -1) {
+                  moving = Deselecting;
+                }
+              }
+
+              int elem = 0;
+              for (int i = 0; i < selected_brushes.size(); i++) {
+                if (selected_brushes[i].obj == jorter) {
+                  elem = 1;
+                  idx = i;
+                }
+              }
+              if (!elem) {
+                if (jorter != -1 && !is_present) {
+                  idx = selected_brushes.size();
+                  selected_brushes.push_back(Selection{jorter});
+                }
+              }
 
               if (selected_brushes.size()) {
-                int selected_face = -1;
-                for (int i = 0; i < selected_brushes.size(); i++) {
+                i32 selected_face = -1;
+                for (u32 i = 0; i < selected_brushes.size(); i++) {
                   Brush *jortware = &scene[selected_brushes[i].obj].brush;
                   selected_face =
                       select_brush_face(jortware, camera->origin, ray_world);
@@ -682,7 +732,7 @@ int main() { // impure
                   }
                 }
                 int face_elem = 0;
-                for (u32 i : selected_brushes[idx].faces) {
+                for (i32 i : selected_brushes[idx].faces) {
                   if (selected_face == i) {
                     face_elem = 1;
                   }
@@ -701,18 +751,21 @@ int main() { // impure
                   // printf("%s\n", glm::to_string(gizmo.pos).c_str());
                 }
                 for (u32 i : selected_brushes[idx].faces) {
-                  printf("%i\n", i);
+                  println("{}", i);
                 }
               }
               break;
             }
             }
-            if (!moving && selected_brushes.size()) {
-              moving = 1;
+            }
+            gizmo.hit_pos = object_new_pos(gizmo.pos, move_dir,
+                                       camera->origin, ray_world, grid);
+            if (moving == None && selected_brushes.size()) {
+              moving = Selecting;
             }
             if (selected_brushes.size() && is_present) {
-              if (moving && moving != 5) {
-                moving = 3;
+              if (moving != None && moving != Deselecting) {
+                moving = Moving;
               }
             }
           }
@@ -726,10 +779,10 @@ int main() { // impure
           // SDL_SetRelativeMouseMode(SDL_FALSE);
           break;
         case SDL_BUTTON_LEFT:
-          if (moving == 5) {
-            moving = 0;
-          } else if (moving) {
-            moving = 2;
+          if (moving == Deselecting) {
+            moving = None;
+          } else if (moving != None) {
+            moving = Selected;
           }
           extruded = 0;
           break;
@@ -778,12 +831,18 @@ int main() { // impure
         case SDL_SCANCODE_EQUALS:
           wireframe = !wireframe;
           break;
+        case SDL_SCANCODE_R:
+          for (Selection i : selected_brushes) {
+            recenter_brush(&scene[i.obj].brush);
+          }
+          break;
         case SDL_SCANCODE_C:
           for (Selection i : selected_brushes) {
-            // brushes = remove_brush(brushes, i.obj);
             remove_node(&scene, i.obj);
           }
           selected_brushes.clear();
+          gizmo.visible = false;
+          moving = None;
           break;
         }
         break;
@@ -822,7 +881,7 @@ int main() { // impure
     ImGui::NewFrame();
 
     if (selected_object_class != -1) {
-      ImGui::Text("%s", models[selected_object_class].name);
+      ImGui::Text("%s", models[selected_object_class].name.c_str());
     } else {
       ImGui::Text("");
     }
@@ -832,7 +891,7 @@ int main() { // impure
     float window_visible_x2 =
         ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
     for (int i = 0; i < models.size(); i++) {
-      if (ImGui::Button(models[i].name, button_sz)) {
+      if (ImGui::Button(models[i].name.c_str(), button_sz)) {
         selected_object_class = i;
       }
       float last_button_x2 = ImGui::GetItemRectMax().x;
@@ -858,7 +917,7 @@ int main() { // impure
 
     float diste;
     float best_dist = INFINITY;
-    if (moving == 2 && gizmo.visible) {
+    if (moving == Selected && gizmo.visible) {
       gizmoind = -1;
       for (int i = 0; i < gizmo.model->count; i++) {
         GltfMesh *meshe = &gizmo.model->meshes[i];
@@ -883,6 +942,7 @@ int main() { // impure
     glClearColor(0.0, 0.5, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glEnable(GL_MULTISAMPLE);
     glm::mat4 model = glm::mat4(1.0f);
 
     glUseProgram(grid_shader);
@@ -912,7 +972,7 @@ int main() { // impure
     glEnableVertexAttribArray(2);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    glUseProgram(shader);
+    glUseProgram(solid_shader);
     glEnable(GL_CULL_FACE);
     glDisable(GL_BLEND);
 
@@ -920,10 +980,6 @@ int main() { // impure
     glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(proj));
-
-    glUniform1ui(9, 0);
-    // glUniform1ui(9, -1);
-    glUniform1ui(5, 0); // has_tex = 0
 
     glm::vec3 albedo = glm::vec3(0.0, 1.0, 0.0);
 
@@ -933,68 +989,68 @@ int main() { // impure
     glEnableVertexAttribArray(0);
     glDrawArrays(GL_LINES, 0, 2);
 
+    glUseProgram(shader);
+    glUniform1ui(9, 0);
+    // glUniform1ui(9, -1);
+    glUniform1ui(5, 0); // has_tex = 0
+
+    glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(proj));
+
     albedo = glm::vec3(1.0);
     glUniform3fv(4, 1, glm::value_ptr(albedo));
 
-    if (moving == 3 && gizmo.visible) {
-      if (selected_brushes.size()) {
+    if (moving == Moving && gizmo.visible) {
+      glm::vec3 init_pos = gizmo.pos;
+
+      glm::vec3 diff = gizmo.pos - gizmo.hit_pos;
+      gizmo.hit_pos = object_new_pos(gizmo.hit_pos, move_dir,
+                                 camera->origin, ray_world, grid);
+      gizmo.pos = gizmo.hit_pos + diff;
+
+      glm::vec3 offs = gizmo.pos - init_pos;
+
+      if (selected_brushes.size() && offs != glm::vec3(0.0)) {
         // printf("jort\n");
         switch (edit_mode) {
         case ObjectM: {
           Brush *brusher = &scene[selected_brushes[0].obj].brush;
-          glm::vec3 diff = gizmo.pos - gizmo.hit_pos;
-          gizmo.hit_pos = object_new_pos(gizmo.hit_pos, move_dir,
-                                     camera->origin, ray_world, grid);
-          gizmo.pos = gizmo.hit_pos + diff;
-
           // puts(glm::to_string(gizmo.pos).c_str());
 
           brusher->origin = gizmo.pos;
-
-          glm::vec3 orig_mod = gizmo.pos - init_jort;
           for (int i = 0; i < selected_brushes.size(); i++) {
             if (i == 0) {
               continue;
             }
             brush = &scene[selected_brushes[i].obj].brush;
-            brush->origin += orig_mod;
+            brush->origin += offs;
           }
           init_jort = brusher->origin;
           break;
         }
         case Face: {
-          glm::vec3 offs = gizmo.pos;
-          gizmo.pos = object_new_pos(gizmo.pos, move_dir, camera->origin,
-                                     ray_world, grid);
-          offs = gizmo.pos - offs;
           // if (offs != glm::vec3(0.0, 0.0, 0.0)) {
           // printf("%s\n", glm::to_string(offs).c_str());
           // }
-          for (int i = 0; i < selected_brushes.size(); i++) {
-            Brush *cur_brush = &scene[selected_brushes[i].obj].brush;
-            for (int j = 0; j < selected_brushes[i].faces.size(); j++) {
-              u32 cur_face = selected_brushes[i].faces[j];
-              if (offs != glm::vec3(0.0, 0.0, 0.0)) {
-                if (SDL_GetModState() & KMOD_LSHIFT && !extruded) {
+          for (Selection selection : selected_brushes) {
+            Brush *cur_brush = &scene[selection.obj].brush;
+              if (SDL_GetModState() & KMOD_LSHIFT && !extruded) {
+                for (u32 cur_face : selection.faces) {
+                  println("extruded\n");
                   extrude_face(cur_brush->mesh, cur_face);
                 }
-              }
+                extruded = 1;
             }
-            move_faces(cur_brush->mesh, selected_brushes[i].faces, offs);
+            move_faces(cur_brush->mesh, selection.faces, offs);
             update_brush(cur_brush);
           }
-          extruded = 1;
           break;
         }
         case Vertex: {
-          glm::vec3 offs = gizmo.pos;
-          gizmo.pos = object_new_pos(gizmo.pos, move_dir, camera->origin,
-                                     ray_world, grid);
-          offs = gizmo.pos - offs;
-          for (int i = 0; i < selected_brushes.size(); i++) {
-            Brush *cur_brush = &scene[selected_brushes[i].obj].brush;
-            for (int j = 0; j < selected_brushes[i].verts.size(); j++) {
-              cur_brush->mesh->verts[selected_brushes[i].verts[j]] += offs;
+          for (Selection selection : selected_brushes) {
+            Brush *cur_brush = &scene[selection.obj].brush;
+            for (u32 vert : selection.verts) {
+              cur_brush->mesh->verts[vert] += offs;
             }
             update_brush(cur_brush);
           }
@@ -1006,6 +1062,7 @@ int main() { // impure
     glUniform1ui(11, 1);
 
     glEnable(GL_BLEND);
+    glLineWidth(3);
     if (edit_mode == Vertex) {
       // render_brushes_points(brushes, selected_brushes);
     }
@@ -1039,53 +1096,87 @@ int main() { // impure
     //     }
     //   });
 
-    auto render_sys = world.system<Brush>()
-      .iter([](flecs::iter it, Brush *brushes) {
-        for (int j : it) {
-          Brush *rendered = &brushes[j];
-          render_brush(rendered);
-        }
-      });
+    // auto render_sys = world.system<Brush>()
+    //   .iter([](flecs::iter it, Brush *brushes) {
+    //     for (int j : it) {
+    //       Brush *rendered = &brushes[j];
+    //       render_brush(rendered);
+    //     }
+    //   });
 
+    glUniform4fv(glGetUniformLocation(shader, "overlay"), 1, glm::value_ptr(glm::vec4(0.0)));
 
-    for (int i = 0; i < scene.size(); i++) {
+    for (u32 i = 0; i < scene.size(); i++) {
       switch (scene[i].type) {
         case node_type_brush: {
+          glUseProgram(shader); 
           // printf("brush type\n");
-          glUniform1ui(5, 1);
-          glUniform1ui(11, 1);
-          glUniform1ui(10, 1);
+          glUniform1ui(glGetUniformLocation(shader, "has_tex"), 1);
+          glUniform1ui(glGetUniformLocation(shader, "indexed"), 1);
+          glUniform1ui(glGetUniformLocation(shader, "gridt"), 1);
           // for (int i = 0; i < scene.size(); i++) {
             int elem = 0;
-            for (int x = 0; x < selected_brushes.size(); x++) {
+            for (u32 x = 0; x < selected_brushes.size(); x++) {
               if (selected_brushes[x].obj == i) {
                 elem = 1 + x;
                 break;
               }
             }
-            if (elem) {
-              glm::vec3 albedo = glm::vec3(1.0, 0.0, 0.0);
-              glUniform3fv(4, 1, glm::value_ptr(albedo));
 
-        	  if (selected_brushes.size() && selected_brushes[elem - 1].faces.size()) {
-        		glUniform1ui(9, selected_brushes[elem - 1].faces.size());
-        		glUniform1uiv(12, selected_brushes[elem - 1].faces.size(), selected_brushes[elem - 1].faces.data());
+          glm::vec3 albedo = glm::vec3(1.0);
+            if (elem) {
+              // glm::vec3 albedo = glm::vec3(1.0, 0.0, 0.0);
+              glUniform3fv(glGetUniformLocation(shader, "albedo"), 1, glm::value_ptr(albedo));
+
+        	  if (selected_brushes.size() && selected_brushes[elem - 1].faces.size() && edit_mode == Face) {
+        		glUniform1ui(glGetUniformLocation(shader, "jortnite_len"), selected_brushes[elem - 1].faces.size());
+
+        		glUniform1uiv(glGetUniformLocation(shader, "jortnite"), selected_brushes[elem - 1].faces.size(), selected_brushes[elem - 1].faces.data());
         	  }
               //glUniform1ui(9, -1);
             } else {
               glm::vec3 albedo = glm::vec3(1.0);
-              glUniform3fv(4, 1, glm::value_ptr(albedo));
-              glUniform1ui(9, 0);
+              glUniform3fv(glGetUniformLocation(shader, "albedo"), 1, glm::value_ptr(albedo));
+              glUniform1ui(glGetUniformLocation(shader, "jortnite_len"), 0);
+            }
+
+            if (elem) {
+                glm::vec4 overlay = glm::vec4(0.0, 0.5, 1.0, 0.3);
+
+                glUniform4fv(glGetUniformLocation(shader, "overlay"), 1, glm::value_ptr(overlay));
             }
 
             render_brush(&scene[i].brush);
-          // }
-          glUniform1ui(5, 0);
-          glUniform1ui(11, 0);
-          glUniform1ui(10, 0);
+            render_brush_points(&scene[i].brush);
+
+
+            glUniform4fv(glGetUniformLocation(shader, "overlay"), 1, glm::value_ptr(glm::vec4(0.0)));
+
+            if (elem) {
+                glUseProgram(solid_shader); 
+
+                glm::mat4 model = get_brush_matrix(&scene[i].brush);
+
+                glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
+                glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(view));
+                glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(proj));
+                glUniform3fv(5, 1, glm::value_ptr(camera->origin));
+
+                albedo = glm::vec3(0.0, 0.5, 1.0);
+
+                glUniform3fv(glGetUniformLocation(solid_shader, "albedo"), 1, glm::value_ptr(albedo));
+                glBindVertexArray(scene[i].brush.edges.vao);
+                glUniform1ui(6, 1);
+                glDrawArrays(GL_LINES, 0, scene[i].brush.edges.num_verts);
+                glUniform1ui(6, 0);
+            }
           break;
         }
         case node_type_object:
+          glUseProgram(shader); 
+          glUniform1ui(glGetUniformLocation(shader, "has_tex"), 0);
+          glUniform1ui(glGetUniformLocation(shader, "indexed"), 0);
+          glUniform1ui(glGetUniformLocation(shader, "gridt"), 0);
           scene[i].object.model->transform =
               glm::translate(glm::mat4(1.0f), scene[i].object.pos);
           render_model(scene[i].object.model);
@@ -1094,7 +1185,8 @@ int main() { // impure
     }
 
     glUniform1ui(9, 0);
-    if (moving > 1 && moving < 4 && gizmo.visible) {
+    if (moving > Selecting && moving < Deselecting && gizmo.visible) {
+        glUseProgram(solid_shader); 
       glm::vec3 gizmo_dir = glm::normalize(gizmo.pos - camera->origin);
       gizmo.model->transform = glm::translate(
           glm::mat4(1.0f), camera->origin + gizmo_dir * glm::vec3(15.0f));
@@ -1105,6 +1197,8 @@ int main() { // impure
         render_model(gizmo.model);
       }
     }
+
+    // printf("%d\n", moving);
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

@@ -1,4 +1,6 @@
 #include "editing.hpp"
+#include <bit>
+#include <ranges>
 
 glm::vec2 *get_default_uvs() {
   glm::vec2 uv0 = glm::vec2(0.0, 0.0);
@@ -12,6 +14,29 @@ glm::vec2 *get_default_uvs() {
   uvs[2] = uv2;
   uvs[3] = uv3;
   return uvs;
+}
+
+std::vector<Edge> get_edges(std::vector<Face> &faces) {
+    std::vector<Edge> edges;
+
+    for (Face &face : faces) {
+        for (u32 i = 0; i < face.indices.size(); i++) {
+            u32 a = face.indices[i];
+            u32 b = face.indices[(i + 1) % face.indices.size()];
+            bool found = false;
+            for (Edge &edge : edges) {
+                if ((edge.a == a && edge.b == b) ||
+                    (edge.a == b && edge.b == a)) {
+                    found = true;
+                }
+            }
+            if (!found) {
+                 edges.push_back(Edge{a, b});
+            }
+        }
+    }
+
+    return edges;
 }
 
 Mesh *get_cube() {
@@ -42,6 +67,9 @@ Mesh *get_cube() {
     Face {{1, 5, 6, 2}, uvs},
     Face {{3, 7, 4, 0}, uvs},
   };
+
+  mesh->edges = get_edges(mesh->faces);
+
   return mesh;
 }
 
@@ -71,9 +99,8 @@ Mesh *get_cube() {
 */
 
 std::vector<u32> get_tris_face(Face *face) {
-  //u32 *output = (u32*)malloc(sizeof(u32) * 3 * (face->vertc - 2));
   std::vector<u32> output;
-  u32 nite = 0;
+
   if (face->indices.size() == 4) {
     output.push_back(face->indices[0]);
     output.push_back(face->indices[1]);
@@ -82,64 +109,84 @@ std::vector<u32> get_tris_face(Face *face) {
     output.push_back(face->indices[3]);
     output.push_back(face->indices[0]);
   }
+
   return output;
 }
 
-u32 emit_vert(float *out, u32 index_, glm::vec3 pos, glm::vec3 normal, glm::vec2 uv, u32 facei) {
-  u32 index = index_;
-  out[index] = pos.x;
-  index++;
-  out[index] = pos.y;
-  index++;
-  out[index] = pos.z;
-  index++;
-  out[index] = normal.x;
-  index++;
-  out[index] = normal.y;
-  index++;
-  out[index] = normal.z;
-  index++;
-  out[index] = uv.x;
-  index++;
-  out[index] = uv.y;
-  index++;
-  out[index] = *reinterpret_cast<float*>(&facei);
-  index++;
-  return index - index_;
+void emit_vert(std::vector<float> *out, glm::vec3 pos, glm::vec3 normal, glm::vec2 uv, u32 facei) {
+  out->push_back(pos.x);
+  out->push_back(pos.y);
+  out->push_back(pos.z);
+  out->push_back(normal.x);
+  out->push_back(normal.y);
+  out->push_back(normal.z);
+  out->push_back(uv.x);
+  out->push_back(uv.y);
+  out->push_back(std::bit_cast<float>(facei));
 }
 
-float *get_tris(Mesh *mesh, u32 *num) {
-  u32 fort = 0;
-  for (Face &face : mesh->faces) {
-    fort += face.indices.size() - 2;
-  }
-  *num = fort;
+std::vector<float> get_tris(Mesh *mesh) {
+  // u32 fort = 0;
+  // for (Face &face : mesh->faces) {
+  //   fort += face.indices.size() - 2;
+  // }
+  // *num = fort;
 
   u32 vert_size = 3 * sizeof(float) + 3 * sizeof(float) + 2 * sizeof(float) + 1 * sizeof(u32);
-  float *out = (float*)malloc(vert_size * 3 * fort);
-  u32 nite = 0;
-  for (int i = 0; i < mesh->faces.size(); i++) {
-	  Face *face = &mesh->faces[i];
+  // std::vector<float> out = (float*)malloc(vert_size * 3 * fort);
+  std::vector<float> out;
+
+  for (auto [i, face] : std::views::enumerate(mesh->faces)) {
     // u32 *tris =  get_tris_face(face);
     // for (int i = 0; i < 6; i++) {
     //   out[nite] = tris[i];
     //   nite++;
     // }
-    glm::vec3 v1 = mesh->verts[face->indices[2]] - mesh->verts[face->indices[1]];
-    glm::vec3 v2 = mesh->verts[face->indices[0]] - mesh->verts[face->indices[1]];
+    glm::vec3 v1 = mesh->verts[face.indices[2]] - mesh->verts[face.indices[1]];
+    glm::vec3 v2 = mesh->verts[face.indices[0]] - mesh->verts[face.indices[1]];
     glm::vec3 normal = glm::normalize(glm::cross(v1, v2));
 
-    if (face->indices.size() == 4) {
-      nite += emit_vert(out, nite, mesh->verts[face->indices[0]], normal, face->uvs[0], i);
-      nite += emit_vert(out, nite, mesh->verts[face->indices[1]], normal, face->uvs[1], i);
-      nite += emit_vert(out, nite, mesh->verts[face->indices[2]], normal, face->uvs[2], i);
+    if (face.indices.size() == 4) {
+      emit_vert(&out, mesh->verts[face.indices[0]], normal, face.uvs[0], i);
+      emit_vert(&out, mesh->verts[face.indices[1]], normal, face.uvs[1], i);
+      emit_vert(&out, mesh->verts[face.indices[2]], normal, face.uvs[2], i);
 
-      nite += emit_vert(out, nite, mesh->verts[face->indices[2]], normal, face->uvs[2], i);
-      nite += emit_vert(out, nite, mesh->verts[face->indices[3]], normal, face->uvs[3], i);
-      nite += emit_vert(out, nite, mesh->verts[face->indices[0]], normal, face->uvs[0], i);
+      emit_vert(&out, mesh->verts[face.indices[2]], normal, face.uvs[2], i);
+      emit_vert(&out, mesh->verts[face.indices[3]], normal, face.uvs[3], i);
+      emit_vert(&out, mesh->verts[face.indices[0]], normal, face.uvs[0], i);
     }
   }
+
   return out;
+}
+
+std::vector<float> get_render_edges(Mesh *mesh) {
+    std::vector<glm::vec3> temp_verts = mesh->verts;
+
+    for (Face &face : mesh->faces) {
+        glm::vec3 v1 = mesh->verts[face.indices[2]] - mesh->verts[face.indices[1]];
+        glm::vec3 v2 = mesh->verts[face.indices[0]] - mesh->verts[face.indices[1]];
+        glm::vec3 normal = glm::normalize(glm::cross(v1, v2));
+
+        for (u32 i : face.indices) {
+            temp_verts[i] += normal * 0.01f;
+        }
+    }
+
+    std::vector<float> ret;
+
+    for (Edge &edge : mesh->edges) {
+        ret.push_back(temp_verts[edge.a].x);
+        ret.push_back(temp_verts[edge.a].y);
+        ret.push_back(temp_verts[edge.a].z);
+        ret.push_back(std::bit_cast<float>(edge.a));
+        ret.push_back(temp_verts[edge.b].x);
+        ret.push_back(temp_verts[edge.b].y);
+        ret.push_back(temp_verts[edge.b].z);
+        ret.push_back(std::bit_cast<float>(edge.b));
+    }
+
+    return ret;
 }
 
 glm::vec3 get_normal_face(Mesh *mesh, Face *face) {
@@ -166,7 +213,7 @@ void move_face_along_normal(Mesh *mesh, u32 facei, i32 dir, i32 grid) {
 
   for (u32 &index : face->indices) {
     glm::vec3 vert = mesh->verts[index];
-    glm::vec3 moved = vert + (normal * amount);
+    glm::vec3 moved = vert + normal_scaled;
 
     mesh->verts[index] = moved;
   }
@@ -259,6 +306,9 @@ u32 extrude_face(Mesh *mesh, u32 facei) {
     mesh->faces[facei].indices[i] = lasti_old + i;
   }
 
+  // TODO improve performance by just adding the new edges
+  mesh->edges = get_edges(mesh->faces);
+
   return mesh->faces.size() - 1;
 }
 
@@ -297,18 +347,17 @@ u32 intersect_faces(Mesh *mesh, glm::mat4 transform, glm::vec3 origin, glm::vec3
 
 void gen_uvs(Mesh *mesh) {
 //std::vector<glm::vec2> gen_uvs(Mesh *mesh) {
-	for (int i = 0; i < mesh->faces.size(); i++) {
-		Face *face = &mesh->faces[i];
-		glm::vec3 orig = mesh->verts[face->indices[0]];
-		glm::quat rot_mod = glm::rotation(glm::vec3(0.0, 0.0, 1.0), get_normal_face(mesh, face));
-		face->uvs[0] = glm::vec2(0.0, 0.0);
-		for (int g = 1; g < face->indices.size(); g++) {
-			//face->uvs[g] = mesh->verts[face->indices[g]] - orig;
-			glm::vec2 vedoe = glm::vec2(glm::rotate(rot_mod, glm::vec4(mesh->verts[face->indices[g]] - orig, 1.0)));
-			face->uvs[g] = vedoe;
-			//printf("%s\n", glm::to_string(vedoe).c_str());
-		}
-	}
+    for (Face &face : mesh->faces) {
+        glm::vec3 orig = mesh->verts[face.indices[0]];
+        glm::quat rot_mod = glm::rotation(glm::vec3(0.0, 0.0, 1.0), get_normal_face(mesh, &face));
+        face.uvs[0] = glm::vec2(0.0, 0.0);
+        for (u32 g = 0; g < face.indices.size(); g++) {
+            //face->uvs[g] = mesh->verts[face->indices[g]] - orig;
+            glm::vec2 vedoe = glm::vec2(glm::rotate(rot_mod, glm::vec4(mesh->verts[face.indices[g]] - orig, 1.0)));
+            face.uvs[g] = vedoe;
+            //printf("%s\n", glm::to_string(vedoe).c_str());
+        }
+    }
 }
 
 glm::vec3 get_face_center(Mesh *mesh, u32 facei) {
@@ -343,9 +392,9 @@ glm::vec3 get_face_center(Mesh *mesh, u32 facei) {
 //   return aabb;
 // }
 
-void recenter_mesh(Mesh *mesh, glm::vec3 origin, glm::vec3 center) {
-  // for (glm::vec3 &vert : mesh->verts) {
-    // vert -= center - origin;
-  // }
+void recenter_mesh(Mesh *mesh, glm::vec3 center) {
+  for (glm::vec3 &vert : mesh->verts) {
+    vert -= center;
+  }
 }
 

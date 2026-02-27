@@ -1,16 +1,15 @@
 #include "brush.hpp"
+#include "physics/aabb.hpp"
+#include <print>
 
 void update_mesh(Mesh *mesh, UploadedMesh *umesh) {
-  u32 num;
-  float *tris = get_tris(mesh, &num);
+  std::vector<float> tris = get_tris(mesh);
   u32 vert_size = 3 * sizeof(float) + 3 * sizeof(float) + 2 * sizeof(float) + 1 * sizeof(u32);
 
   glBindVertexArray(umesh->vao);
 
   glBindBuffer(GL_ARRAY_BUFFER, umesh->vbo);
-  glBufferData(GL_ARRAY_BUFFER, num * 3 * vert_size, tris, GL_STATIC_DRAW);
-
-  free(tris);
+  glBufferData(GL_ARRAY_BUFFER, tris.size() * sizeof(float), tris.data(), GL_STATIC_DRAW);
 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vert_size, 0);
   glEnableVertexAttribArray(0);
@@ -24,25 +23,38 @@ void update_mesh(Mesh *mesh, UploadedMesh *umesh) {
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  umesh->num_verts = num * 3;
+  umesh->num_verts = tris.size();
 }
 
-UploadedMesh *upload_mesh(Mesh *mesh) {
-  UploadedMesh *umesh = (UploadedMesh*)malloc(sizeof(UploadedMesh));
+UploadedMesh upload_mesh(bool visible) {
+  UploadedMesh umesh;
 
-  u32 vao;
-  glGenVertexArrays(1, &vao);
+  glGenVertexArrays(1, &umesh.vao);
+  glGenBuffers(1, &umesh.vbo);
 
-  u32 vbo;
-  glGenBuffers(1, &vbo);
-
-  umesh->vao = vao;
-  umesh->vbo = vbo;
-  umesh->visible = 1;
-
-  update_mesh(mesh, umesh);
+  umesh.visible = visible;
 
   return umesh;
+}
+
+void update_edges(Mesh *mesh, UploadedMesh *umesh) {
+  std::vector<float> edges = get_render_edges(mesh);
+
+  glBindVertexArray(umesh->vao);
+
+  glBindBuffer(GL_ARRAY_BUFFER, umesh->vbo);
+  glBufferData(GL_ARRAY_BUFFER, edges.size() * sizeof(float), edges.data(), GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+  glEnableVertexAttribArray(0);
+
+  glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(3);
+
+  glBindVertexArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  umesh->num_verts = edges.size();
 }
 
 void render_mesh(UploadedMesh *mesh) {
@@ -56,8 +68,13 @@ Brush *new_brush() {
   brush->rotation = glm::vec3(0.0);
   brush->scale = glm::vec3(1.0);
   brush->mesh = get_cube();
-  brush->uploaded = upload_mesh(brush->mesh);
+  brush->uploaded = upload_mesh(true);
+  update_mesh(brush->mesh, &brush->uploaded);
+  brush->edges = upload_mesh(false);
+  update_edges(brush->mesh, &brush->edges);
   brush->aabb = get_aabb(brush->mesh);
+  brush->aabb_debug = upload_mesh(true);
+  update_mesh(get_aabb_mesh(&brush->aabb), &brush->aabb_debug);
   brush->mat = 0;
   return brush;
 }
@@ -76,7 +93,7 @@ glm::mat4 get_brush_matrix(Brush *brush) {
 void render_brush(Brush *brush) {
   glm::mat4 model = get_brush_matrix(brush);
   glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(model));
-  render_mesh(brush->uploaded);
+  render_mesh(&brush->uploaded);
 }
 
 u32 select_brush_face(Brush *brush, glm::vec3 origin, glm::vec3 dir) {
@@ -89,8 +106,8 @@ u32 select_brush_face(Brush *brush, glm::vec3 origin, glm::vec3 dir) {
 u32 intersect_brush(Brush *brush, glm::vec3 origin, glm::vec3 dir, float *dist) {
   glm::mat4 model = get_brush_matrix(brush);
   AABB temp;
-  temp.max = model * glm::vec4(brush->aabb->max, 1.0);
-  temp.min = model * glm::vec4(brush->aabb->min, 1.0);
+  temp.max = model * glm::vec4(brush->aabb.max, 1.0);
+  temp.min = model * glm::vec4(brush->aabb.min, 1.0);
   if (intersect_ray_aabb(&temp, origin, dir, dist)) {
     if (intersect_faces(brush->mesh, model, origin, dir, dist) != -1) {
       return 1;
@@ -120,17 +137,16 @@ BrushList remove_brush(BrushList brushes, u32 index) {
   return brushes;
 }
 
-void render_brushes_points(BrushList brushes, std::vector<Selection> selected) {
+void render_brush_points(Brush *brush) {
   glUniform1ui(5, 0);
   glUniform1ui(10, 0);
   glPolygonMode( GL_FRONT_AND_BACK, GL_POINT );
   glPointSize(10);
-  for (int i = 0; i < brushes.len; i++) {
-	glm::vec3 albedo = glm::vec3(1.0, 1.0, 1.0);
-	glUniform3fv(4, 1, glm::value_ptr(albedo));
+  glm::vec3 albedo = glm::vec3(1.0, 1.0, 1.0);
+  glUniform3fv(4, 1, glm::value_ptr(albedo));
 
-    render_brush(&brushes.data[i]);
-  }
+  render_brush(brush);
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void render_brushes(BrushList brushes, std::vector<Selection> selected) {
@@ -180,11 +196,21 @@ Brush *get_brush_ptr(BrushList brushes, u32 index) {
   }
 }
 
+void recenter_brush(Brush *brush) {
+  glm::vec3 center = get_center(&brush->aabb);
+  recenter_mesh(brush->mesh, center);
+  brush->origin += center;
+  update_brush(brush);
+}
+
 void update_brush(Brush *brush) {
   gen_uvs(brush->mesh);
   brush->aabb = get_aabb(brush->mesh);
-  glm::vec3 center = get_center(brush->aabb);
-  // recenter_mesh(brush->mesh, brush->origin, center);
-  // brush->origin = center;
-  update_mesh(brush->mesh, brush->uploaded);
+  // glm::vec3 center = get_center(&brush->aabb);
+  // std::println("{}", center);
+  // recenter_mesh(brush->mesh, center);
+  // std::println("{}, {}", brush->aabb.min, brush->aabb.max);
+  update_mesh(brush->mesh, &brush->uploaded);
+  update_edges(brush->mesh, &brush->edges);
+  update_mesh(get_aabb_mesh(&brush->aabb), &brush->aabb_debug);
 }

@@ -44,7 +44,7 @@ struct Model {
   GltfMesh *meshes;
   glm::mat4 transform;
   u32 count;
-  char *name;
+  std::string name;
 };
 
 int gltf_intersect_mesh(GltfMesh *mesh, glm::mat4 transform, glm::vec3 origin, glm::vec3 direction, float *dist);

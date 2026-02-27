@@ -13,8 +13,14 @@ struct Face {
   std::vector<glm::vec2> uvs;
 };
 
+struct Edge {
+    u32 a;
+    u32 b;
+};
+
 struct Mesh {
   std::vector<Face> faces;
+  std::vector<Edge> edges;
   std::vector<glm::vec3> verts;
 };
 
@@ -27,6 +33,8 @@ struct UploadedMesh {
 };
 
 glm::vec2 *get_default_uvs();
+
+std::vector<Edge> get_edges(std::vector<Face> &faces);
 
 Mesh *get_cube();
 
@@ -57,9 +65,11 @@ Mesh *get_cube();
 
 std::vector<u32> get_tris_face(Face *face);
 
-u32 emit_vert(float *out, u32 index_, glm::vec3 pos, glm::vec3 normal, glm::vec2 uv, u32 facei);
+void emit_vert(std::vector<float> *out, glm::vec3 pos, glm::vec3 normal, glm::vec2 uv, u32 facei);
 
-float *get_tris(Mesh *mesh, u32 *num);
+std::vector<float> get_tris(Mesh *mesh);
+
+std::vector<float> get_render_edges(Mesh *mesh);
 
 glm::vec3 get_normal_face(Mesh *mesh, Face *face);
 
@@ -95,4 +105,4 @@ glm::vec3 get_face_center(Mesh *mesh, u32 facei);
 //   return aabb;
 // }
 
-void recenter_mesh(Mesh *mesh, glm::vec3 origin, glm::vec3 center);
+void recenter_mesh(Mesh *mesh, glm::vec3 center);

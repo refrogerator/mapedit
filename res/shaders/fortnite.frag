@@ -14,7 +14,7 @@ struct Material {
     int fortnite;
 };
 
-layout (location = 6) uniform Material material;
+layout (location = 6) uniform bool selected;
 layout (location = 8) uniform vec3 viewPos;
 
 layout (location = 7) uniform sampler2D tex;
@@ -26,26 +26,34 @@ layout (location = 11) uniform bool indexed;
 #define NR_SELECTED_FACES 100
 layout (location = 12) uniform uint[NR_SELECTED_FACES] jortnite;
 
+uniform vec4 overlay;
+
 vec3 hsv2rgb(vec3 c) {
   vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
   vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-vec3 grid(vec2 pos) {
+vec4 grid(vec2 pos, vec4 base_color) {
     vec2 pos_ = mod(pos * 2, 1.0);
+    // vec2 pos__ = pos + 0.5;
+    vec2 pos__ = texPos;
 
     float epsilon = 0.1 / 2.0;
 
     if (pos_.x > epsilon && pos_.x < (1.0 - epsilon) && pos_.y > epsilon && pos_.y < (1.0 - epsilon)) {
-        return vec3(1.0);
+        return base_color;
     }
-    return vec3(0.0);
+
+    return vec4(vec3(0.0), 1.0);
+    // return vec4(vec3(pos.x / 2.0 + pos.y / 2.0), 1.0);
+    // return vec4(vec3(pos.x+0.5, pos.y+0.5, 1.0), 1.0);
 }
 
-vec3 triplanar_map() {
+vec4 triplanar_map(vec4 base_color) {
     float jort = 0;
     int fart = 0;
+
     if (abs(dot(normalize(abs(normal)), vec3(1.0, 0.0, 0.0))) > jort) {
         fart = 0;
     }
@@ -55,12 +63,13 @@ vec3 triplanar_map() {
     if (abs(dot(normalize(abs(normal)), vec3(0.0, 0.0, 1.0))) > jort) {
         fart = 2;
     }
+
     switch (fart) {
-        case 0: return grid(fragPos.yz).rgb;
+        case 0: return grid(fragPos.yz, base_color);
             break;
-        case 1: return grid(fragPos.xz).rgb;
+        case 1: return grid(fragPos.xz, base_color);
             break;
-        case 2: return grid(fragPos.xy).rgb;
+        case 2: return grid(fragPos.xy, base_color);
             break;
     }
 }
@@ -80,6 +89,7 @@ void main () {
     } else {
         baseColor = vec4(albedo, 1.0);
     }
+
     //fragColor = vec4(diffuse, 1.0) * baseColor;
     //return;
 
@@ -92,18 +102,19 @@ void main () {
 	}
 
     if (indexed && elem) {
-        baseColor = vec4(1.0);
+        // baseColor = vec4(1.0);
         float overlayAlpha = 0.5;
-        fragColor = (baseColor * (1.0 - overlayAlpha)) + vec4(vec3(1.0, 0.0, 0.0) * overlayAlpha, 1.0);
+        fragColor = (baseColor * (1.0 - overlayAlpha)) + vec4(vec3(0.0, 0.8, 0.8) * overlayAlpha, 1.0);
         //fragColor = vec4(vec3(fragColor) * triplanar_map(), fragColor.a);
-		fragColor = vec4(1.0);
+		// fragColor = vec4(1.0);
         return;
     }
     //fragColor = vec4(normal + 1.0 / 2.0, 1.0);
 	fragColor = baseColor;
     if (gridt) {
-        fragColor = vec4(baseColor.xyz * triplanar_map(), baseColor.a);
+        fragColor = triplanar_map(baseColor);
     }
+    fragColor = (fragColor * (1.0 - overlay.a)) + vec4(overlay.rgb * overlay.a, 1.0);
     // if (gl_PrimitiveID)
     // fragColor = vec4(hsv2rgb(vec3(float(gl_PrimitiveID) / 24.0, 1.0, 1.0)), 1.0);
     return;

@@ -1,26 +1,22 @@
 #include "shader.hpp"
+#include <fstream>
+#include <sstream>
+#include <print>
 
-char *loadFile(char *filename) {
-  FILE *file = fopen(filename, "rb");
-  fseek(file, 0, SEEK_END);
-  long len = ftell(file);
-  rewind(file);
-  char *content = (char*)malloc(len + 1);
-  fread(content, 1, len, file);
-  content[len] = 0;
-  return content;
+std::string loadFile(std::string &filename) {
+    std::ifstream input(filename);
+    std::stringstream sstr;
+    input >> sstr.rdbuf();
+    return sstr.str();
 }
 
-u32 loadShader(char *filename, u32 type) {
-  char *full;
-  int len = snprintf(0, 0, "res/shaders/%s", filename);
-  full = (char*)malloc(len + 1);
-  snprintf(full, len + 1, "res/shaders/%s", filename);
-  char *fortnite = loadFile(full);
-  free(full);
+u32 loadShader(std::string filename, u32 type) {
+  std::string full = std::format("res/shaders/{}", filename);
+  std::string fortnite = loadFile(full);
+  char *fortnite2 = fortnite.data();
 
   u32 shader = glCreateShader(type);
-  glShaderSource(shader, 1, &fortnite, 0);
+  glShaderSource(shader, 1, &fortnite2, 0);
   glCompileShader(shader);
 
   int success;
@@ -28,7 +24,7 @@ u32 loadShader(char *filename, u32 type) {
   if (!success) {
     char infoLog[512];
     glGetShaderInfoLog(shader, 512, NULL, infoLog);
-    printf("Shader %s failed to compile:\n%s\n", filename, infoLog);
+    std::println("Shader {} failed to compile:\n{}", filename, infoLog);
     exit(1);
   }
   return shader;

@@ -1,4 +1,5 @@
 #include "camera.hpp"
+#include "common.h"
 
 namespace cam {
   void translate_x(struct Camera *cam, float amt) {
